@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar';
 import ServerList from './components/ServerList';
 import Downloads from './components/Downloads';
 import Settings from './components/Settings';
+import { NotificationProvider } from './components/Notifications';
 
 const AppContent = () => {
     const [activeTab, setActiveTab] = useState('servers');
@@ -23,7 +24,9 @@ const AppContent = () => {
 const App = () => {
     return (
         <ThemeProvider>
-            <AppContent />
+            <NotificationProvider>
+                <AppContent />
+            </NotificationProvider>
         </ThemeProvider>
     );
 };

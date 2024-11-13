@@ -1,9 +1,11 @@
 // src/renderer/components/ServerList.jsx
 import React from 'react';
-import { Plus, ChevronRight, Download, Play } from 'lucide-react';
 import { useTheme, themes } from '../context/ThemeContext';
 import { useGameData } from '../hooks/useGameData';
+import { useNotifications, NotificationType } from '../components/Notifications';
 import { useDownloadsManager } from '../hooks/useDownloadsManager';
+import { Download, ChevronRight, Plus } from 'lucide-react';
+import { useGameLauncher } from '../hooks/useGameLauncher';
 
 const FlashIcon = () => (
     <svg width="16" height="16" viewBox="0 0 512 512" fill="currentColor">
@@ -27,10 +29,13 @@ const AirIcon = () => (
 const ServerCard = ({ game }) => {
     const { currentTheme } = useTheme();
     const { isGameDownloaded, downloadGame, isReady } = useDownloadsManager();
+    const { launchSWF, launchAIR, isExtracting } = useGameLauncher();
+    const { addNotification } = useNotifications();
     const [playerCount, setPlayerCount] = React.useState("?");
     const [imageError, setImageError] = React.useState(false);
     const [isDownloaded, setIsDownloaded] = React.useState(false);
     const [isDownloading, setIsDownloading] = React.useState(false);
+    const [launchFailed, setLaunchFailed] = React.useState(false);
 
     React.useEffect(() => {
         if (isReady) {
@@ -60,31 +65,70 @@ const ServerCard = ({ game }) => {
         return () => clearInterval(interval);
     }, [game.urls.playerCount]);
 
+    React.useEffect(() => {
+        if (isDownloaded) {
+            setLaunchFailed(false);
+        }
+    }, [isDownloaded]);
+
     const handleImageError = () => {
         console.log("Image failed to load:", game.banner);
         setImageError(true);
+        addNotification(
+            NotificationType.WARNING,
+            `Failed to load banner for ${game.title}`
+        );
     };
 
     const handleDownload = async () => {
         setIsDownloading(true);
+        setLaunchFailed(false);
         try {
             const success = await downloadGame(game);
             if (success) {
                 setIsDownloaded(true);
+                addNotification(
+                    NotificationType.SUCCESS,
+                    `Successfully downloaded ${game.title}`
+                );
+            } else {
+                addNotification(
+                    NotificationType.ERROR,
+                    `Failed to download ${game.title}`
+                );
             }
         } catch (error) {
-            console.error('Download failed:', error);
+            addNotification(
+                NotificationType.ERROR,
+                `Download error: ${error.message}`
+            );
         } finally {
             setIsDownloading(false);
         }
     };
 
-    const handlePlaySWF = () => {
-        console.log('Launch SWF:', game.id);
+    const handlePlaySWF = async () => {
+        const success = await launchSWF(game);
+        if (!success) {
+            setLaunchFailed(true);
+            setIsDownloaded(false);
+            addNotification(
+                NotificationType.ERROR,
+                'Game files may be corrupted. Please try downloading again.'
+            );
+        }
     };
 
-    const handlePlayAIR = () => {
-        console.log('Launch AIR:', game.id);
+    const handlePlayAIR = async () => {
+        const success = await launchAIR(game);
+        if (!success) {
+            setLaunchFailed(true);
+            setIsDownloaded(false);
+            addNotification(
+                NotificationType.ERROR,
+                'Game files may be corrupted. Please try downloading again.'
+            );
+        }
     };
 
     return (
@@ -106,7 +150,6 @@ const ServerCard = ({ game }) => {
                     </div>
                 )}
                 
-                {/* Top badge */}
                 <div className="absolute top-2 right-2">
                     <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200
                         ${game.urls.zip 
@@ -117,7 +160,6 @@ const ServerCard = ({ game }) => {
                     </span>
                 </div>
 
-                {/* Bottom stats with gradient backdrop */}
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent pt-8 pb-2 px-3">
                     <div className="flex justify-end gap-2">
                         <span className="text-white/90 text-sm px-2 py-1 rounded bg-black/30 backdrop-blur-sm">
@@ -137,22 +179,38 @@ const ServerCard = ({ game }) => {
                 <p className={`text-sm mt-1 mb-3 line-clamp-2 ${themes[currentTheme].textSecondary}`}>
                     {game.description}
                 </p>
-                {isDownloaded ? (
+                {isDownloaded && !launchFailed ? (
                     <div className="flex gap-2 mt-auto">
-                        <button className={`flex-1 ${themes[currentTheme].button} ${themes[currentTheme].buttonHover} 
-                                          text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 
-                                          transition-all duration-200 group/button`}>
+                        <button 
+                            onClick={handlePlaySWF}
+                            className={`flex-1 ${themes[currentTheme].button} ${themes[currentTheme].buttonHover} 
+                                      text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 
+                                      transition-all duration-200 group/button`}
+                        >
                             <FlashIcon />
                             <span className="font-medium">Play SWF</span>
                             <ChevronRight size={16} className="opacity-0 -ml-4 group-hover/button:opacity-100 group-hover/button:ml-0 transition-all duration-200" />
                         </button>
                         {game.urls.zip && (
-                            <button className={`flex-1 ${themes[currentTheme].button} ${themes[currentTheme].buttonHover}
-                                              text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 
-                                              transition-all duration-200 group/button`}>
-                                <AirIcon />
-                                <span className="font-medium">Launch AIR</span>
-                                <ChevronRight size={16} className="opacity-0 -ml-4 group-hover/button:opacity-100 group-hover/button:ml-0 transition-all duration-200" />
+                            <button 
+                                onClick={handlePlayAIR}
+                                disabled={isExtracting}
+                                className={`flex-1 ${isExtracting ? 'bg-gray-500' : `${themes[currentTheme].button} ${themes[currentTheme].buttonHover}`}
+                                          text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 
+                                          transition-all duration-200 group/button`}
+                            >
+                                {isExtracting ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                        <span className="font-medium">Extracting...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <AirIcon />
+                                        <span className="font-medium">Launch AIR</span>
+                                        <ChevronRight size={16} className="opacity-0 -ml-4 group-hover/button:opacity-100 group-hover/button:ml-0 transition-all duration-200" />
+                                    </>
+                                )}
                             </button>
                         )}
                     </div>
@@ -167,12 +225,16 @@ const ServerCard = ({ game }) => {
                         {isDownloading ? (
                             <>
                                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                                <span className="font-medium">Downloading...</span>
+                                <span className="font-medium">
+                                    {launchFailed ? 'Re-downloading...' : 'Downloading...'}
+                                </span>
                             </>
                         ) : (
                             <>
                                 <Download size={18} />
-                                <span className="font-medium">Download</span>
+                                <span className="font-medium">
+                                    {launchFailed ? 'Download Again' : 'Download'}
+                                </span>
                                 <ChevronRight size={16} className="opacity-0 -ml-4 group-hover/button:opacity-100 group-hover/button:ml-0 transition-all duration-200" />
                             </>
                         )}

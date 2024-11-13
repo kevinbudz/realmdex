@@ -1,8 +1,11 @@
 // src/renderer/components/Downloads.jsx
 import React from 'react';
-import { Download, ChevronRight, Star, Users } from 'lucide-react';
+import { Download, ChevronRight, Trash2, Users } from 'lucide-react';
 import { useTheme, themes } from '../context/ThemeContext';
 import { useGameData } from '../hooks/useGameData';
+import { useGameLauncher } from '../hooks/useGameLauncher';
+import { useDownloadsManager } from '../hooks/useDownloadsManager';
+import { useNotifications, NotificationType } from '../components/Notifications';
 
 const CategoryBadge = ({ children }) => (
     <span className="text-xs px-2 py-1 rounded-full bg-opacity-10 bg-white text-white text-shadow-sm">
@@ -14,8 +17,15 @@ const DownloadCard = ({ game }) => {
     const { currentTheme } = useTheme();
     const [playerCount, setPlayerCount] = React.useState("?");
     const [isHovered, setIsHovered] = React.useState(false);
+    const { launchSWF, launchAIR, isExtracting } = useGameLauncher();
+    const { isGameDownloaded, downloadGame, getGameFiles, updateManifest } = useDownloadsManager();
+    const { addNotification } = useNotifications();
+    const [isDownloaded, setIsDownloaded] = React.useState(false);
+    const [isDownloading, setIsDownloading] = React.useState(false);
 
     React.useEffect(() => {
+        setIsDownloaded(isGameDownloaded(game.id));
+
         const fetchPlayerCount = async () => {
             if (!game.urls.playerCount) {
                 setPlayerCount("?");
@@ -35,7 +45,52 @@ const DownloadCard = ({ game }) => {
         fetchPlayerCount();
         const interval = setInterval(fetchPlayerCount, 60000);
         return () => clearInterval(interval);
-    }, [game.urls.playerCount]);
+    }, [game.id, game.urls.playerCount, isGameDownloaded]);
+
+    const handleDownload = async () => {
+        setIsDownloading(true);
+        try {
+            const success = await downloadGame(game);
+            if (success) {
+                setIsDownloaded(true);
+                addNotification(
+                    NotificationType.SUCCESS,
+                    `Successfully downloaded ${game.title}`
+                );
+            } else {
+                addNotification(
+                    NotificationType.ERROR,
+                    `Failed to download ${game.title}`
+                );
+            }
+        } catch (error) {
+            addNotification(
+                NotificationType.ERROR,
+                `Download error: ${error.message}`
+            );
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
+    const handleUninstall = () => {
+        const files = getGameFiles(game.id);
+        files.forEach(file => {
+            try {
+                if (fs.existsSync(file.path)) {
+                    fs.unlinkSync(file.path);
+                }
+            } catch (error) {
+                console.error(`Failed to delete ${file.path}:`, error);
+            }
+        });
+        updateManifest(game.id, []);
+        setIsDownloaded(false);
+        addNotification(
+            NotificationType.SUCCESS,
+            `${game.title} uninstalled successfully.`
+        );
+    };
 
     return (
         <div 
@@ -50,7 +105,7 @@ const DownloadCard = ({ game }) => {
                     className="absolute top-0 left-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
                 <div className={`absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent opacity-60 transition-opacity duration-300 ${isHovered ? 'opacity-80' : ''}`} />
-                
+
                 {/* Format badges */}
                 <div className="absolute top-4 left-4 flex gap-2">
                     {game.urls.swf && <CategoryBadge>Flash Game</CategoryBadge>}
@@ -81,22 +136,53 @@ const DownloadCard = ({ game }) => {
                         </span>
                     </div>
 
-                    {/* Single download button */}
-                    <div className="transform translate-y-0 group-hover:translate-y-0 transition-all duration-300">
-                        <button className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg 
-                                       flex items-center justify-center gap-2 transition-all duration-200 group
-                                       shadow-lg hover:shadow-xl">
-                            <Download size={18} />
-                            <span className="font-medium">Download</span>
-                            <ChevronRight size={16} className="opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all duration-200" />
-                        </button>
-                        {/* Included formats text */}
-                        <div className="text-center mt-2 text-xs text-white/80 text-shadow">
-                            Includes: {[
-                                game.urls.swf && 'SWF',
-                                game.urls.air && 'AIR'
-                            ].filter(Boolean).join(' + ')}
-                        </div>
+                    {/* Download and Uninstall buttons */}
+                    <div className="flex gap-2">
+                        {isDownloaded ? (
+                            <>
+                                <button 
+                                    className="flex-1 flex items-center justify-center gap-2 bg-blue-500 text-white px-4 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                                    style={{ width: "70%" }}
+                                >
+                                    <ChevronRight size={18} />
+                                    <span className="font-medium">
+                                        Already Downloaded
+                                    </span>
+                                </button>
+                                <button 
+                                    onClick={handleUninstall}
+                                    className="flex items-center justify-center gap-2 bg-red-500 text-white px-4 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                                    style={{ width: "30%" }}
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </>
+                        ) : (
+                            <button 
+                                onClick={handleDownload}
+                                disabled={isDownloading}
+                                className={`w-full ${isDownloading ? 'bg-gray-500' : 'bg-blue-500 hover:bg-blue-600'}
+                                          text-white px-4 py-3 rounded-lg flex items-center justify-center gap-2 
+                                          transition-all duration-200 group shadow-lg hover:shadow-xl`}
+                            >
+                                {isDownloading ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                        <span className="font-medium">
+                                            Downloading...
+                                        </span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download size={18} />
+                                        <span className="font-medium">
+                                            Download
+                                        </span>
+                                        <ChevronRight size={16} className="opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all duration-200" />
+                                    </>
+                                )}
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
