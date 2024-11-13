@@ -1,6 +1,6 @@
 // src/renderer/hooks/useDownloadsManager.js
 import { useState, useEffect } from 'react';
-import { remote } from '@electron/remote';
+import { app } from '@electron/remote'; // ensure @electron/remote is used
 import fs from 'fs';
 import path from 'path';
 
@@ -10,7 +10,7 @@ export const useDownloadsManager = () => {
 
     useEffect(() => {
         try {
-            const downloadsPath = path.join(remote.app.getPath('userData'), 'downloads');
+            const downloadsPath = path.join(app.getPath('userData'), 'downloads');
             const manifestPath = path.join(downloadsPath, 'manifest.json');
             setPaths({ downloadsPath, manifestPath });
 

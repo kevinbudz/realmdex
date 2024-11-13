@@ -1,3 +1,4 @@
+// src/renderer/context/ThemeContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const ThemeContext = createContext();
@@ -30,7 +31,7 @@ export const themes = {
         bg: 'bg-purple-950',
         card: 'bg-purple-900',
         cardHover: 'hover:bg-purple-800',
-        sidebar: 'bg-purple-950',
+        sidebar: 'bg-purple-700',  // Changed to a different shade for contrast
         text: 'text-purple-50',
         textSecondary: 'text-purple-200',
         button: 'bg-purple-500',
@@ -41,7 +42,7 @@ export const themes = {
         bg: 'bg-slate-950',
         card: 'bg-slate-900',
         cardHover: 'hover:bg-slate-800',
-        sidebar: 'bg-slate-950',
+        sidebar: 'bg-blue-800',  // Changed to a different shade for contrast
         text: 'text-slate-50',
         textSecondary: 'text-slate-200',
         button: 'bg-slate-500',
@@ -52,11 +53,55 @@ export const themes = {
         bg: 'bg-emerald-950',
         card: 'bg-emerald-900',
         cardHover: 'hover:bg-emerald-800',
-        sidebar: 'bg-emerald-950',
+        sidebar: 'bg-green-800',  // Changed to a different shade for contrast
         text: 'text-emerald-50',
         textSecondary: 'text-emerald-200',
         button: 'bg-emerald-500',
         buttonHover: 'hover:bg-emerald-600'
+    },
+    solarizedLight: {
+        name: 'Solarized Light',
+        bg: 'bg-[#fdf6e3]',
+        card: 'bg-[#eee8d5]',
+        cardHover: 'hover:bg-[#e8e0c7]',
+        sidebar: 'bg-[#d5c39b]',
+        text: 'text-[#586e75]',
+        textSecondary: 'text-[#657b83]',
+        button: 'bg-[#268bd2]',
+        buttonHover: 'hover:bg-[#2692d6]'
+    },
+    solarizedDark: {
+        name: 'Solarized Dark',
+        bg: 'bg-[#002b36]',
+        card: 'bg-[#073642]',
+        cardHover: 'hover:bg-[#0b3a4a]',
+        sidebar: 'bg-[#0b3a4a]',
+        text: 'text-[#839496]',
+        textSecondary: 'text-[#93a1a1]',
+        button: 'bg-[#268bd2]',
+        buttonHover: 'hover:bg-[#268fd2]'
+    },
+    monochrome: {
+        name: 'Monochrome',
+        bg: 'bg-[#d5d5d5]',
+        card: 'bg-[#ffffff]',
+        cardHover: 'hover:bg-[#e5e5e5]',
+        sidebar: 'bg-[#c5c5c5]',
+        text: 'text-[#1a1a1a]',
+        textSecondary: 'text-[#2a2a2a]',
+        button: 'bg-[#404040]',
+        buttonHover: 'hover:bg-[#505050]'
+    },
+    highContrast: {
+        name: 'High Contrast',
+        bg: 'bg-[#000000]',
+        card: 'bg-[#ffffff]',
+        cardHover: 'hover:bg-[#e0e0e0]',
+        sidebar: 'bg-[#ffcc00]',
+        text: 'text-[#000000]',
+        textSecondary: 'text-[#333333]',
+        button: 'bg-[#ff0000]',
+        buttonHover: 'hover:bg-[#ff3333]'
     }
 };
 

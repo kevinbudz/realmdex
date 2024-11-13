@@ -6,30 +6,7 @@ import { remote } from '@electron/remote';
 const path = require('path');
 const fs = require('fs');
 
-const ThemeOption = ({ id, name, current, onClick }) => (
-    <div
-        onClick={() => onClick(id)}
-        className={`relative p-4 rounded-lg cursor-pointer transition-all duration-200 
-                   ${current === id ? `ring-2 ring-${themes[id].button.split('bg-')[1]}` : 'hover:bg-opacity-80'}
-                   ${themes[id].card} ${themes[id].text}`}
-    >
-        <div className="flex items-center justify-between">
-            <div>
-                <h3 className="font-medium">{name}</h3>
-            </div>
-            {current === id && (
-                <Check size={20} className={themes[id].button.replace('bg-', 'text-')} />
-            )}
-        </div>
-        
-        {/* Theme Preview */}
-        <div className="mt-3 flex gap-2">
-            <div className={`w-6 h-6 rounded ${themes[id].sidebar}`}></div>
-            <div className={`flex-1 h-6 rounded ${themes[id].bg}`}></div>
-        </div>
-    </div>
-);
-
+// Component for handling directory selection
 const DirectorySelector = ({ label, value, onChange, icon: Icon, placeholder }) => {
     const { currentTheme } = useTheme();
     
@@ -76,7 +53,34 @@ const DirectorySelector = ({ label, value, onChange, icon: Icon, placeholder }) 
     );
 };
 
-// Update the main Settings component
+// Component for selecting and displaying theme options
+const ThemeOption = ({ id, name, current, onClick }) => {
+    return (
+        <div
+            onClick={() => onClick(id)}
+            className={`relative p-4 rounded-lg cursor-pointer transition-all duration-200 
+                       ${current === id ? `ring-2 ring-${themes[id].button.split('bg-')[1]}` : 'hover:bg-opacity-80'}
+                       ${themes[id].card} ${themes[id].text}`}
+        >
+            <div className="flex items-center justify-between">
+                <div>
+                    <h3 className="font-medium">{name}</h3>
+                </div>
+                {current === id && (
+                    <Check size={20} className={themes[id].button.replace('bg-', 'text-')} />
+                )}
+            </div>
+            
+            {/* Theme Preview */}
+            <div className="mt-3 flex gap-2">
+                <div className={`w-6 h-6 rounded ${themes[id].sidebar}`}></div>
+                <div className={`flex-1 h-6 rounded ${themes[id].bg}`}></div>
+            </div>
+        </div>
+    );
+};
+
+// Main Settings component with default download path logic
 const Settings = () => {
     const { currentTheme, setCurrentTheme } = useTheme();
     const [paths, setPaths] = React.useState({
@@ -86,21 +90,25 @@ const Settings = () => {
     const [saved, setSaved] = React.useState(false);
 
     const themeOptions = [
-        { id: 'light', name: 'Light', description: '' },
-        { id: 'dark', name: 'Dark', description: '' },
-        { id: 'darkPurple', name: 'Blurple', description: '' },
-        { id: 'darkPastelBlue', name: 'Dark Blue', description: '' },
-        { id: 'darkPastelGreen', name: 'Pine', description: '' }
+        { id: 'light', name: 'Light' },
+        { id: 'dark', name: 'Dark' },
+        { id: 'darkPurple', name: 'Blurple' },
+        { id: 'darkPastelBlue', name: 'Dark Blue' },
+        { id: 'darkPastelGreen', name: 'Pine' },
+        { id: 'solarizedLight', name: 'Solarized Light' },
+        { id: 'solarizedDark', name: 'Solarized Dark' },
+        { id: 'monochrome', name: 'Monochrome' },
+        { id: 'highContrast', name: 'High Contrast' }
     ];
 
-    // Load paths on component mount
+    // Load paths and attempt to use reasonable defaults
     React.useEffect(() => {
         loadPaths();
     }, []);
 
     const loadPaths = () => {
         try {
-            const userDataPath = electron.remote.app.getPath('userData');
+            const userDataPath = remote.app.getPath('userData');
             const settingsPath = path.join(userDataPath, 'settings.json');
             
             if (fs.existsSync(settingsPath)) {
@@ -110,7 +118,7 @@ const Settings = () => {
                 // Set defaults
                 const defaultSettings = {
                     flashPlayerPath: '',
-                    downloadsPath: path.join(electron.remote.app.getPath('downloads'), 'FlashGames')
+                    downloadsPath: path.join(remote.app.getPath('downloads'), 'FlashGames') // Default path
                 };
                 setPaths(defaultSettings);
                 savePaths(defaultSettings);
@@ -122,7 +130,7 @@ const Settings = () => {
 
     const savePaths = (newPaths) => {
         try {
-            const userDataPath = electron.remote.app.getPath('userData');
+            const userDataPath = remote.app.getPath('userData');
             const settingsPath = path.join(userDataPath, 'settings.json');
             fs.writeFileSync(settingsPath, JSON.stringify(newPaths, null, 2));
             
