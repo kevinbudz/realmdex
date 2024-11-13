@@ -30,23 +30,32 @@ const ThemeOption = ({ id, name, current, onClick }) => (
 const Settings = () => {
     const { currentTheme, setCurrentTheme } = useTheme();
 
-    const themeOptions = [
-        {
-            id: 'light',
-            name: 'Light Theme',
-            description: 'Clean and bright interface'
-        },
-        {
-            id: 'dark',
-            name: 'Dark Theme',
-            description: 'Easy on the eyes'
-        },
-        {
-            id: 'darkPurple',
-            name: 'Dark Purple',
-            description: 'Dark theme with purple accents'
-        }
-    ];
+    const themeOptions = 
+    [{
+        id: 'light',
+        name: 'Light',
+        description: ''
+    },
+    {
+        id: 'dark',
+        name: 'Dark',
+        description: ''
+    },
+    {
+        id: 'darkPurple',
+        name: 'Blurple',
+        description: ''
+    },
+    {
+        id: 'darkPastelBlue',
+        name: 'Dark Blue',
+        description: ''
+    },
+    {
+        id: 'darkPastelGreen',
+        name: 'Pine',
+        description: ''
+    }];
 
     return (
         <div className={`flex-1 ${themes[currentTheme].bg} p-6 overflow-auto`}>

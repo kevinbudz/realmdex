@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+}
+
+@layer components {
+    .text-shadow-sm {
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+    .text-shadow {
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    .text-shadow-lg {
+        text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5),
+                     0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    .text-outline {
+        text-shadow: -1px -1px 0 rgba(0, 0, 0, 0.5),
+                     1px -1px 0 rgba(0, 0, 0, 0.5),
+                    -1px 1px 0 rgba(0, 0, 0, 0.5),
+                     1px 1px 0 rgba(0, 0, 0, 0.5);
+    }
+}

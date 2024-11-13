@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import localGamesData from '../data/games.json';
 
-const REMOTE_JSON_URL = 'https://your-domain.com/games.json'; // Replace with your actual URL
+const REMOTE_JSON_URL = 'https://kevinbudz.github.io/global.json';
 
 export const useGameData = () => {
     const [games, setGames] = useState([]);
