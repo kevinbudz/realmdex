@@ -1,6 +1,8 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 
+require('@electron/remote/main').initialize();
+
 function createWindow() {
     const win = new BrowserWindow({
         width: 800,
@@ -8,10 +10,13 @@ function createWindow() {
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
-            webSecurity: true
+            webSecurity: true,
+            enableRemoteModule: true
         },
         resizable: false
     });
+
+    require('@electron/remote/main').enable(win.webContents);
 
     // Set CSP headers
     win.webContents.session.webRequest.onHeadersReceived((details, callback) => {
@@ -22,7 +27,8 @@ function createWindow() {
                 "default-src 'self' 'unsafe-inline' http://localhost:3000; " +
                 "img-src 'self' http://localhost:3000 https://*.githubusercontent.com https://*.github.io data:; " +
                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-                "font-src 'self' https://fonts.gstatic.com;"
+                "font-src 'self' https://fonts.gstatic.com;" + 
+                "connect-src 'self' http://localhost:3000 https://*.githubusercontent.com https://*.github.io"
             ]
         }
     });

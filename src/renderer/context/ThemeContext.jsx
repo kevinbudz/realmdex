@@ -10,7 +10,9 @@ export const themes = {
         cardHover: 'hover:bg-gray-50',
         sidebar: 'bg-gray-800',
         text: 'text-gray-800',
-        textSecondary: 'text-gray-600'
+        textSecondary: 'text-gray-600',
+        button: 'bg-blue-500',
+        buttonHover: 'hover:bg-blue-600'
     },
     dark: {
         name: 'Dark',
@@ -19,34 +21,42 @@ export const themes = {
         cardHover: 'hover:bg-gray-700',
         sidebar: 'bg-black',
         text: 'text-white',
-        textSecondary: 'text-gray-300'
+        textSecondary: 'text-gray-300',
+        button: 'bg-blue-500',
+        buttonHover: 'hover:bg-blue-600'
     },
     darkPurple: {
-        name: 'Dark Purple',
-        bg: 'bg-deep-purple-950',     // Almost black with purple tint
-        card: 'bg-deep-purple-900',   // Very dark purple
-        cardHover: 'hover:bg-deep-purple-800',
-        sidebar: 'bg-deep-purple-950',
-        text: 'text-deep-purple-50',
-        textSecondary: 'text-deep-purple-200'
+        name: 'Blurple',
+        bg: 'bg-purple-950',
+        card: 'bg-purple-900',
+        cardHover: 'hover:bg-purple-800',
+        sidebar: 'bg-purple-950',
+        text: 'text-purple-50',
+        textSecondary: 'text-purple-200',
+        button: 'bg-purple-500',
+        buttonHover: 'hover:bg-purple-600'
     },
     darkPastelBlue: {
-        name: 'Dark Pastel Blue',
-        bg: 'bg-slate-950', // Almost black blue
+        name: 'Dark Blue',
+        bg: 'bg-slate-950',
         card: 'bg-slate-900',
         cardHover: 'hover:bg-slate-800',
         sidebar: 'bg-slate-950',
         text: 'text-slate-50',
-        textSecondary: 'text-slate-200'
+        textSecondary: 'text-slate-200',
+        button: 'bg-slate-500',
+        buttonHover: 'hover:bg-slate-600'
     },
     darkPastelGreen: {
-        name: 'Dark Pastel Green',
-        bg: 'bg-emerald-950', // Almost black green
+        name: 'Pine',
+        bg: 'bg-emerald-950',
         card: 'bg-emerald-900',
         cardHover: 'hover:bg-emerald-800',
         sidebar: 'bg-emerald-950',
         text: 'text-emerald-50',
-        textSecondary: 'text-emerald-200'
+        textSecondary: 'text-emerald-200',
+        button: 'bg-emerald-500',
+        buttonHover: 'hover:bg-emerald-600'
     }
 };
 

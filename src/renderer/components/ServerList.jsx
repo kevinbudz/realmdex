@@ -1,8 +1,9 @@
 // src/renderer/components/ServerList.jsx
 import React from 'react';
+import { Plus, ChevronRight, Download, Play } from 'lucide-react';
 import { useTheme, themes } from '../context/ThemeContext';
 import { useGameData } from '../hooks/useGameData';
-import { Plus, ChevronRight } from 'lucide-react';
+import { useDownloadsManager } from '../hooks/useDownloadsManager';
 
 const FlashIcon = () => (
     <svg width="16" height="16" viewBox="0 0 512 512" fill="currentColor">
@@ -25,8 +26,17 @@ const AirIcon = () => (
 
 const ServerCard = ({ game }) => {
     const { currentTheme } = useTheme();
+    const { isGameDownloaded, downloadGame, isReady } = useDownloadsManager();
     const [playerCount, setPlayerCount] = React.useState("?");
     const [imageError, setImageError] = React.useState(false);
+    const [isDownloaded, setIsDownloaded] = React.useState(false);
+    const [isDownloading, setIsDownloading] = React.useState(false);
+
+    React.useEffect(() => {
+        if (isReady) {
+            setIsDownloaded(isGameDownloaded(game.id));
+        }
+    }, [isReady, game.id, isGameDownloaded]);
 
     React.useEffect(() => {
         const fetchPlayerCount = async () => {
@@ -55,6 +65,28 @@ const ServerCard = ({ game }) => {
         setImageError(true);
     };
 
+    const handleDownload = async () => {
+        setIsDownloading(true);
+        try {
+            const success = await downloadGame(game);
+            if (success) {
+                setIsDownloaded(true);
+            }
+        } catch (error) {
+            console.error('Download failed:', error);
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
+    const handlePlaySWF = () => {
+        console.log('Launch SWF:', game.id);
+    };
+
+    const handlePlayAIR = () => {
+        console.log('Launch AIR:', game.id);
+    };
+
     return (
         <div className={`${themes[currentTheme].card} rounded-xl shadow overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] group`}>
             <div className="relative w-full pt-[56.25%] bg-gray-200">
@@ -77,11 +109,11 @@ const ServerCard = ({ game }) => {
                 {/* Top badge */}
                 <div className="absolute top-2 right-2">
                     <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200
-                        ${game.urls.air 
-                            ? 'bg-purple-500/90 hover:bg-purple-500 text-white' 
-                            : 'bg-blue-500/90 hover:bg-blue-500 text-white'}`}
+                        ${game.urls.zip 
+                            ? `${themes[currentTheme].button} text-white` 
+                            : `${themes[currentTheme].button} text-white`}`}
                     >
-                        {game.urls.air ? 'AIR + SWF' : 'SWF Only'}
+                        {game.urls.zip ? 'AIR + SWF' : 'SWF Only'}
                     </span>
                 </div>
 
@@ -105,22 +137,47 @@ const ServerCard = ({ game }) => {
                 <p className={`text-sm mt-1 mb-3 line-clamp-2 ${themes[currentTheme].textSecondary}`}>
                     {game.description}
                 </p>
-                <div className="flex gap-2 mt-auto">
-                    <button className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg 
-                                     flex items-center justify-center gap-2 transition-all duration-200 group/button">
-                        <FlashIcon />
-                        <span className="font-medium">.swf</span>
-                        <ChevronRight size={16} className="opacity-0 -ml-4 group-hover/button:opacity-100 group-hover/button:ml-0 transition-all duration-200" />
-                    </button>
-                    {game.urls.air && (
-                        <button className="flex-1 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg 
-                                         flex items-center justify-center gap-2 transition-all duration-200 group/button">
-                            <AirIcon />
-                            <span className="font-medium">AIR</span>
+                {isDownloaded ? (
+                    <div className="flex gap-2 mt-auto">
+                        <button className={`flex-1 ${themes[currentTheme].button} ${themes[currentTheme].buttonHover} 
+                                          text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 
+                                          transition-all duration-200 group/button`}>
+                            <FlashIcon />
+                            <span className="font-medium">Play SWF</span>
                             <ChevronRight size={16} className="opacity-0 -ml-4 group-hover/button:opacity-100 group-hover/button:ml-0 transition-all duration-200" />
                         </button>
-                    )}
-                </div>
+                        {game.urls.zip && (
+                            <button className={`flex-1 ${themes[currentTheme].button} ${themes[currentTheme].buttonHover}
+                                              text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 
+                                              transition-all duration-200 group/button`}>
+                                <AirIcon />
+                                <span className="font-medium">Launch AIR</span>
+                                <ChevronRight size={16} className="opacity-0 -ml-4 group-hover/button:opacity-100 group-hover/button:ml-0 transition-all duration-200" />
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <button 
+                        onClick={handleDownload}
+                        disabled={isDownloading}
+                        className={`w-full ${isDownloading ? 'bg-gray-500' : `${themes[currentTheme].button} ${themes[currentTheme].buttonHover}`}
+                                  text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 
+                                  transition-all duration-200 group/button`}
+                    >
+                        {isDownloading ? (
+                            <>
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                <span className="font-medium">Downloading...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Download size={18} />
+                                <span className="font-medium">Download</span>
+                                <ChevronRight size={16} className="opacity-0 -ml-4 group-hover/button:opacity-100 group-hover/button:ml-0 transition-all duration-200" />
+                            </>
+                        )}
+                    </button>
+                )}
             </div>
         </div>
     );
@@ -136,7 +193,7 @@ const AddServerCard = ({ onOpenDownloads }) => {
         >
             <div className={`relative w-full pt-[56.25%] ${themes[currentTheme].card} flex items-center justify-center`}>
                 <div className={`absolute inset-0 flex flex-col items-center justify-center ${themes[currentTheme].textSecondary}`}>
-                    <Plus size={48} />
+                    <Plus size={48} className={`${themes[currentTheme].button.replace('bg-', 'text-')}`} />
                     <span className="mt-2 font-medium">Browse Games</span>
                 </div>
             </div>
