@@ -257,7 +257,7 @@ const AddServerCard = ({ onOpenDownloads }) => {
             <div className={`relative w-full pt-[56.25%] ${themes[currentTheme].card} flex items-center justify-center`}>
                 <div className={`absolute inset-0 flex flex-col items-center justify-center ${themes[currentTheme].textSecondary}`}>
                     <Plus size={48} className={`${themes[currentTheme].button.replace('bg-', 'text-')}`} />
-                    <span className="mt-2 font-medium">Browse Games</span>
+                    <span className={`${themes[currentTheme].text}`}>Browse Games</span>
                 </div>
             </div>
         </div>
@@ -276,20 +276,20 @@ const LoadingState = () => {
     );
 };
 
+
 const ServerList = ({ setActiveTab }) => {
     const { currentTheme } = useTheme();
     const { games, isLoading } = useGameData();
     const { isGameDownloaded, isReady } = useDownloadsManager();
 
-    if (isLoading || !isReady) {
+    if (isLoading) {
         return <LoadingState />;
     }
 
-    // Filter games that are already downloaded
     const downloadedGames = games.filter(game => isGameDownloaded(game.id));
 
     return (
-        <div className={`flex-1 ${themes[currentTheme].bg} p-4 overflow-auto`}>
+        <div className={`flex-1 ${themes[currentTheme].bg} p-4 custom-scrollbar`}>
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {downloadedGames.map((game) => (
                     <ServerCard key={game.id} game={game} />

@@ -1,5 +1,4 @@
 // src/renderer/components/Downloads.jsx
-// src/renderer/components/Downloads.jsx
 import React from 'react';
 import { Download, ChevronRight, Trash2, Users, User } from 'lucide-react';
 import { useTheme, themes } from '../context/ThemeContext';
@@ -11,7 +10,7 @@ const path = require('path');
 
 const DownloadCard = ({ game }) => {
     const { currentTheme } = useTheme();
-    const { downloadGame, isGameDownloaded, getGameFiles, updateManifest, paths } = useDownloadsManager();
+    const { downloadGame, isGameDownloaded, getGameFiles, updateManifest, paths, uninstallGame } = useDownloadsManager();
     const { addNotification } = useNotifications();
     const [isDownloaded, setIsDownloaded] = React.useState(false);
     const [isDownloading, setIsDownloading] = React.useState(false);
@@ -51,30 +50,10 @@ const DownloadCard = ({ game }) => {
             console.error('Paths not initialized!');
             return;
         }
+        
+        // Use uninstallGame method from the hook to handle uninstallation directly
+        uninstallGame(game.id);
 
-        const files = getGameFiles(game.id);
-        files.forEach(file => {
-            try {
-                if (fs.existsSync(file.path)) {
-                    fs.unlinkSync(file.path);
-                    console.log(`Deleted file: ${file.path}`);
-                }
-            } catch (error) {
-                console.error(`Failed to delete file ${file.path}:`, error);
-            }
-        });
-
-        const gameDir = path.join(paths.downloadsPath, game.id);
-        try {
-            if (fs.existsSync(gameDir) && fs.readdirSync(gameDir).length === 0) {
-                fs.rmdirSync(gameDir);
-                console.log(`Deleted empty directory: ${gameDir}`);
-            }
-        } catch (error) {
-            console.error(`Error deleting directory ${gameDir}:`, error);
-        }
-
-        updateManifest(game.id, []);
         setIsDownloaded(false);
         addNotification(
             NotificationType.SUCCESS,
@@ -165,7 +144,7 @@ const Downloads = () => {
 
     if (isLoading) {
         return (
-            <div className={`flex-1 ${themes[currentTheme].bg} p-4 flex items-center justify-center`}>
+            <div className={`flex-1 ${themes[currentTheme].bg} p-4 flex items-center justify-center custom-scrollbar`}>
                 <div className="flex flex-col items-center gap-4">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
                     <p className={`${themes[currentTheme].text}`}>Loading available games...</p>
@@ -175,7 +154,7 @@ const Downloads = () => {
     }
 
     return (
-        <div className={`flex-1 ${themes[currentTheme].bg} p-8 overflow-auto`}>
+        <div className={`flex-1 ${themes[currentTheme].bg} p-8 overflow-auto custom-scrollbar`}>
             <div className="max-w-7xl mx-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {games.map((game) => (
@@ -185,11 +164,11 @@ const Downloads = () => {
                         className={`relative group rounded-xl shadow-lg overflow-hidden transform transition-all duration-300 cursor-pointer hover:scale-[1.02] hover:shadow-xl ${themes[currentTheme].card}`}
                         onClick={handleServerRedirect}
                     >
-                        <div className="relative w-full pt-[56.25%] bg-gray-200 flex items-center justify-center">
+                        <div className="relative w-full pt-[56.25%] ${themes[currentTheme].card} flex items-center justify-center">
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
                                 <User size={30} className={themes[currentTheme].text} />
                                 <div className="text-center">
-                                    <h3 className="font-medium text-lg">Wanna add your server?</h3>
+                                    <h3 className={`${themes[currentTheme].textSecondary}`}>Wanna add your server?</h3>
                                     <p className={`${themes[currentTheme].textSecondary}`}>Click here!</p>
                                 </div>
                             </div>

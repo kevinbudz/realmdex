@@ -1,45 +1,19 @@
-// src/renderer/components/Settings.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme, themes } from '../context/ThemeContext';
 import { Check } from 'lucide-react';
 import { useDownloadsManager } from '../hooks/useDownloadsManager';
 
-const availableFlashPlayers = [
-    { version: '11', description: 'Flash Player 11', url: 'https://kevinbudz.github.io/flashplayer_11.exe' },
-    { version: '18', description: 'Flash Player 18', url: 'https://example.com/flashplayer_18.exe' },
-    { version: '32', description: 'Flash Player 32', url: 'https://example.com/flashplayer_32.exe' },
-];
-
-const ThemeOption = ({ id, name, current, onClick }) => {
-    return (
-        <div
-            onClick={() => onClick(id)}
-            className={`relative p-4 rounded-lg cursor-pointer transition-all duration-200 
-                       ${current === id ? `ring-2 ring-${themes[id].button.split('bg-')[1]}` : 'hover:bg-opacity-80'}
-                       ${themes[id].card} ${themes[id].text}`}
-        >
-            <div className="flex items-center justify-between">
-                <div>
-                    <h3 className="font-medium">{name}</h3>
-                </div>
-                {current === id && (
-                    <Check size={20} className={themes[id].button.replace('bg-', 'text-')} />
-                )}
-            </div>
-            
-            <div className="mt-3 flex gap-2">
-                <div className={`w-6 h-6 rounded ${themes[id].sidebar}`}></div>
-                <div className={`flex-1 h-6 rounded ${themes[id].bg}`}></div>
-            </div>
-        </div>
-    );
-};
-
 const Settings = () => {
     const { currentTheme, setCurrentTheme } = useTheme();
-    const [currentFlashPlayer, setCurrentFlashPlayer] = useState('11');
     const { isVersionDownloaded, downloadFlashPlayerVersion } = useDownloadsManager();
+    const [currentFlashPlayer, setCurrentFlashPlayer] = useState('11');
     const [saved, setSaved] = useState(false);
+
+    const availableFlashPlayers = [
+        { version: '11', description: 'Flash Player 11', url: 'https://kevinbudz.github.io/flashplayer_11.exe' },
+        { version: '18', description: 'Flash Player 18', url: 'https://example.com/flashplayer_18.exe' },
+        { version: '32', description: 'Flash Player 32', url: 'https://example.com/flashplayer_32.exe' },
+    ];
 
     useEffect(() => {
         const savedFlashPlayer = localStorage.getItem('flashPlayerVersion');
@@ -71,7 +45,7 @@ const Settings = () => {
     ];
 
     return (
-        <div className={`flex-1 ${themes[currentTheme].bg} p-6 overflow-auto`}>
+        <div className={`flex-1 ${themes[currentTheme].bg} p-6 overflow-auto custom-scrollbar`}>
             <div className="max-w-2xl mx-auto">
                 <div className="flex items-center justify-between mb-6">
                     <h2 className={`text-2xl font-bold ${themes[currentTheme].text}`}>
@@ -109,13 +83,26 @@ const Settings = () => {
                     </h3>
                     <div className="grid gap-4">
                         {themeOptions.map(theme => (
-                            <ThemeOption
+                            <div
                                 key={theme.id}
-                                id={theme.id}
-                                name={theme.name}
-                                current={currentTheme}
-                                onClick={setCurrentTheme}
-                            />
+                                onClick={() => setCurrentTheme(theme.id)}
+                                className={`relative cursor-pointer p-4 rounded-lg transition-all duration-200 
+                                           ${currentTheme === theme.id ? `ring-2 ring-${themes[theme.id].button.split('bg-')[1]}` : 'hover:bg-opacity-80'}
+                                           ${themes[theme.id].card} ${themes[theme.id].text}`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="font-medium">{theme.name}</h3>
+                                    </div>
+                                    {currentTheme === theme.id && (
+                                        <Check size={20} className={themes[theme.id].button.replace('bg-', 'text-')} />
+                                    )}
+                                </div>
+                                <div className="mt-3 flex gap-2">
+                                    <div className={`w-6 h-6 rounded ${themes[theme.id].sidebar}`}></div>
+                                    <div className={`flex-1 h-6 rounded ${themes[theme.id].bg}`}></div>
+                                </div>
+                            </div>
                         ))}
                     </div>
                 </div>
