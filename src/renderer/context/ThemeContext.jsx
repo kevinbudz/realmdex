@@ -27,7 +27,7 @@ export const themes = {
         buttonHover: 'hover:bg-blue-600'
     },
     darkPurple: {
-        name: 'Blurple',
+        name: 'Purple',
         bg: 'bg-purple-950',
         card: 'bg-purple-900',
         cardHover: 'hover:bg-purple-800',
@@ -92,17 +92,6 @@ export const themes = {
         button: 'bg-[#404040]',
         buttonHover: 'hover:bg-[#505050]'
     },
-    highContrast: {
-        name: 'High Contrast',
-        bg: 'bg-[#000000]',
-        card: 'bg-[#ffffff]',
-        cardHover: 'hover:bg-[#e0e0e0]',
-        sidebar: 'bg-[#ffcc00]',
-        text: 'text-[#000000]',
-        textSecondary: 'text-[#333333]',
-        button: 'bg-[#ff0000]',
-        buttonHover: 'hover:bg-[#ff3333]'
-    }
 };
 
 export const ThemeProvider = ({ children }) => {

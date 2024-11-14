@@ -1,112 +1,33 @@
-// src/renderer/hooks/useGameLauncher.js
-import { useState } from 'react';
-import { remote } from '@electron/remote';
 import { useNotifications, NotificationType } from '../components/Notifications';
-import path from 'path';
 import fs from 'fs';
-import AdmZip from 'adm-zip';
+import path from 'path';
+import { exec } from 'child_process';
+import AdmZip from 'adm-zip';  // Import the adm-zip module
 
 export const useGameLauncher = () => {
     const { addNotification } = useNotifications();
-    const [isExtracting, setIsExtracting] = useState(false);
+    const baseDownloadsPath = path.join(process.env.APPDATA, 'realmdex', 'downloads');
 
-    const extractAir = async (zipPath, extractPath) => {
-        setIsExtracting(true);
-        addNotification(
-            NotificationType.INFO,
-            'Extracting AIR package... This may take a moment.'
-        );
+    const ensureFlashPlayer = async () => {
+        const flashPlayerUrl = "https://kevinbudz.github.io/flashplayer_11.exe"; // Update path if needed
+        const flashPlayerPath = path.join(baseDownloadsPath, 'flashplayer_11.exe');
 
-        try {
-            if (!fs.existsSync(extractPath)) {
-                fs.mkdirSync(extractPath, { recursive: true });
-            }
-
-            const zip = new AdmZip(zipPath);
-            await new Promise((resolve, reject) => {
-                zip.extractAllToAsync(extractPath, true, (error) => {
-                    if (error) reject(error);
-                    else resolve();
-                });
-            });
-
-            addNotification(
-                NotificationType.SUCCESS,
-                'AIR package extracted successfully'
-            );
-            return true;
-        } catch (error) {
-            addNotification(
-                NotificationType.ERROR,
-                `Extraction failed: ${error.message}`
-            );
-            return false;
-        } finally {
-            setIsExtracting(false);
-        }
-    };
-
-    const findExecutable = (dirPath, gameId) => {
-        const files = fs.readdirSync(dirPath);
-        
-        const executablePatterns = {
-            win32: ['.exe'],
-            darwin: ['.app'],
-            linux: ['.run', '.sh', '']
-        };
-
-        const patterns = executablePatterns[process.platform] || ['.exe'];
-
-        // First, look for game-specific executable
-        const gameExe = files.find(file => {
-            const lowerFile = file.toLowerCase();
-            return patterns.some(ext => 
-                lowerFile === `${gameId}${ext}` || 
-                lowerFile === `launcher${ext}` ||
-                lowerFile === `start${ext}`
-            );
-        });
-
-        if (gameExe) return path.join(dirPath, gameExe);
-
-        // Look for any executable
-        const anyExe = files.find(file => {
-            const lowerFile = file.toLowerCase();
-            return patterns.some(ext => lowerFile.endsWith(ext));
-        });
-
-        if (anyExe) return path.join(dirPath, anyExe);
-
-        // Search subdirectories
-        for (const file of files) {
-            const fullPath = path.join(dirPath, file);
-            if (fs.statSync(fullPath).isDirectory()) {
-                const exeInSubdir = findExecutable(fullPath, gameId);
-                if (exeInSubdir) return exeInSubdir;
+        if (!fs.existsSync(flashPlayerPath)) {
+            console.log("Flash Player not found, downloading...");
+            const downloaded = await downloadFile(flashPlayerUrl, flashPlayerPath);
+            if (!downloaded) {
+                throw new Error('Failed to download Flash Player');
             }
         }
-
-        return null;
+        return flashPlayerPath;
     };
 
     const launchSWF = async (game) => {
+        console.log("Attempting to launch SWF for game:", game.title);
         try {
-            const settings = JSON.parse(
-                fs.readFileSync(
-                    path.join(remote.app.getPath('userData'), 'settings.json'),
-                    'utf8'
-                )
-            );
+            const flashPlayerPath = await ensureFlashPlayer();
+            const gamePath = path.join(baseDownloadsPath, game.id, `${game.id}.swf`);
 
-            if (!settings.flashPlayerPath) {
-                addNotification(
-                    NotificationType.ERROR,
-                    'Flash Player path not configured. Please set it in Settings.'
-                );
-                return false;
-            }
-
-            const gamePath = path.join(settings.downloadsPath, game.id, `${game.id}.swf`);
             if (!fs.existsSync(gamePath)) {
                 addNotification(
                     NotificationType.ERROR,
@@ -115,32 +36,26 @@ export const useGameLauncher = () => {
                 return false;
             }
 
-            const child = require('child_process').spawn(
-                settings.flashPlayerPath,
-                [gamePath],
-                { 
-                    detached: true,
-                    stdio: 'ignore',
-                    windowsHide: false
-                }
-            );
+            console.log("Using Flash Player from path:", flashPlayerPath);
 
-            child.on('error', (err) => {
+            exec(`"${flashPlayerPath}" "${gamePath}"`, (err) => {
+                if (err) {
+                    console.error('Failed to launch game:', err);
+                    addNotification(
+                        NotificationType.ERROR,
+                        `Failed to launch game: ${err.message}`
+                    );
+                    return false;
+                }
                 addNotification(
-                    NotificationType.ERROR,
-                    `Failed to launch game: ${err.message}`
+                    NotificationType.SUCCESS,
+                    `Launched ${game.title}`
                 );
-                return false;
             });
 
-            child.unref();
-            addNotification(
-                NotificationType.SUCCESS,
-                `Launched ${game.title}`
-            );
             return true;
-
         } catch (error) {
+            console.error('Failed to launch game:', error);
             addNotification(
                 NotificationType.ERROR,
                 `Failed to launch game: ${error.message}`
@@ -150,76 +65,66 @@ export const useGameLauncher = () => {
     };
 
     const launchAIR = async (game) => {
-        try {
-            const settings = JSON.parse(
-                fs.readFileSync(
-                    path.join(remote.app.getPath('userData'), 'settings.json'),
-                    'utf8'
-                )
-            );
-
-            const zipPath = path.join(settings.downloadsPath, game.id, `${game.id}.zip`);
-            const extractPath = path.join(settings.downloadsPath, game.id, 'air');
-
-            if (!fs.existsSync(zipPath)) {
+        console.log("Attempting to launch AIR executable for game:", game.title);
+        const airZipPath = path.join(baseDownloadsPath, game.id, `${game.id}.zip`);
+        const airFolderPath = path.join(baseDownloadsPath, game.id, `air`);
+        const executablePath = path.join(airFolderPath, game.executable);
+        
+        // Ensure the AIR directory exists and the executable is present
+        if (!fs.existsSync(executablePath)) {
+            console.log(`Extracting AIR application for ${game.id}...`);
+            try {
+                const zip = new AdmZip(airZipPath);
+                zip.extractAllTo(airFolderPath, true); // Extracts to the `air` subfolder, retaining .zip after extraction
+                console.log(`Extraction complete for ${game.id}.`);
+            } catch (error) {
+                console.error('Extraction error:', error);
                 addNotification(
                     NotificationType.ERROR,
-                    'Game files not found. Try downloading again.'
+                    `Failed to extract game: ${error.message}`
                 );
                 return false;
             }
+        }
 
-            if (!fs.existsSync(extractPath) || !fs.readdirSync(extractPath).length) {
-                const extracted = await extractAir(zipPath, extractPath);
-                if (!extracted) return false;
-            }
-
-            const exePath = findExecutable(extractPath, game.id);
-            if (!exePath) {
+        // Now attempt to run the executable
+        exec(`"${executablePath}"`, (err) => {
+            if (err) {
+                console.error('Failed to launch AIR application:', err);
                 addNotification(
                     NotificationType.ERROR,
-                    'Could not find game launcher in the extracted files.'
+                    `Failed to launch application: ${err.message}`
                 );
-                return false;
+                return;
             }
-
-            const child = require('child_process').spawn(
-                exePath,
-                [],
-                { 
-                    detached: true,
-                    stdio: 'ignore',
-                    windowsHide: false
-                }
-            );
-
-            child.on('error', (err) => {
-                addNotification(
-                    NotificationType.ERROR,
-                    `Failed to launch game: ${err.message}`
-                );
-                return false;
-            });
-
-            child.unref();
+            console.log(`Launched ${game.title} successfully.`);
             addNotification(
                 NotificationType.SUCCESS,
                 `Launched ${game.title}`
             );
-            return true;
-
-        } catch (error) {
-            addNotification(
-                NotificationType.ERROR,
-                `Failed to launch game: ${error.message}`
-            );
-            return false;
-        }
+        });
     };
 
     return {
         launchSWF,
         launchAIR,
-        isExtracting
     };
+};
+
+const downloadFile = async (url, filePath) => {
+    try {
+        const response = await fetch(url);
+        if (response.ok) {
+            console.log(`Fetch successful from URL: ${url}`);
+            const buffer = await response.arrayBuffer();
+            fs.writeFileSync(filePath, Buffer.from(buffer));
+            return true;
+        } else {
+            console.error(`Failed to fetch file from ${url} - Status: ${response.status}`);
+            return false;
+        }
+    } catch (error) {
+        console.error(`Error downloading file at URL: ${url}`, error);
+        return false;
+    }
 };

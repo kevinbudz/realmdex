@@ -1,4 +1,3 @@
-// webpack.config.js
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
@@ -8,7 +7,7 @@ module.exports = {
         main: './src/renderer/index.jsx'
     },
     target: 'electron-renderer',
-    devtool: 'source-map',  // Add source map support
+    devtool: 'source-map',
     output: {
         path: path.resolve(__dirname, 'dist'),
         filename: '[name].js',
@@ -33,7 +32,8 @@ module.exports = {
         ]
     },
     resolve: {
-        extensions: ['.js', '.jsx']
+        extensions: ['.js', '.jsx'],
+        // Explicit fallbacks are not normally needed, fs, path should aim to run in electron main
     },
     plugins: [
         new HtmlWebpackPlugin({

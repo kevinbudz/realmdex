@@ -25,11 +25,8 @@ const ServerCard = ({ game }) => {
     const { isGameDownloaded, downloadGame, isReady } = useDownloadsManager();
     const { launchSWF, launchAIR, isExtracting } = useGameLauncher();
     const { addNotification } = useNotifications();
-    const [playerCount, setPlayerCount] = React.useState("?");
-    const [imageError, setImageError] = React.useState(false);
     const [isDownloaded, setIsDownloaded] = React.useState(false);
     const [isDownloading, setIsDownloading] = React.useState(false);
-    const [launchFailed, setLaunchFailed] = React.useState(false);
 
     React.useEffect(() => {
         if (isReady) {
@@ -37,46 +34,9 @@ const ServerCard = ({ game }) => {
         }
     }, [isReady, game.id, isGameDownloaded]);
 
-    React.useEffect(() => {
-        const fetchPlayerCount = async () => {
-            if (!game.urls.playerCount) {
-                setPlayerCount("?");
-                return;
-            }
-
-            try {
-                const response = await fetch(game.urls.playerCount);
-                if (!response.ok) throw new Error('Failed to fetch');
-                const count = await response.text();
-                setPlayerCount(count);
-            } catch (error) {
-                setPlayerCount("?");
-            }
-        };
-
-        fetchPlayerCount();
-        const interval = setInterval(fetchPlayerCount, 60000);
-        return () => clearInterval(interval);
-    }, [game.urls.playerCount]);
-
-    React.useEffect(() => {
-        if (isDownloaded) {
-            setLaunchFailed(false);
-        }
-    }, [isDownloaded]);
-
-    const handleImageError = () => {
-        console.log("Image failed to load:", game.banner);
-        setImageError(true);
-        addNotification(
-            NotificationType.WARNING,
-            `Failed to load banner for ${game.title}`
-        );
-    };
-
+    // Function to handle download
     const handleDownload = async () => {
         setIsDownloading(true);
-        setLaunchFailed(false);
         try {
             const success = await downloadGame(game);
             if (success) {
@@ -104,7 +64,6 @@ const ServerCard = ({ game }) => {
     const handlePlaySWF = async () => {
         const success = await launchSWF(game);
         if (!success) {
-            setLaunchFailed(true);
             setIsDownloaded(false);
             addNotification(
                 NotificationType.ERROR,
@@ -116,7 +75,6 @@ const ServerCard = ({ game }) => {
     const handlePlayAIR = async () => {
         const success = await launchAIR(game);
         if (!success) {
-            setLaunchFailed(true);
             setIsDownloaded(false);
             addNotification(
                 NotificationType.ERROR,
@@ -128,29 +86,30 @@ const ServerCard = ({ game }) => {
     return (
         <div className={`${themes[currentTheme].card} rounded-xl shadow overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] group`}>
             <div className="relative w-full pt-[56.25%] bg-gray-200">
-                {!imageError ? (
-                    <img 
-                        src={game.banner}
-                        alt={game.title}
-                        className="absolute top-0 left-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        onError={handleImageError}
-                        crossOrigin="anonymous"
-                    />
-                ) : (
-                    <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-200">
-                        <span className={`text-sm ${themes[currentTheme].textSecondary}`}>
-                            Banner unavailable
-                        </span>
-                    </div>
-                )}
+                <img 
+                    src={game.banner}
+                    alt={game.title}
+                    className="absolute top-0 left-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    crossOrigin="anonymous"
+                />
                 
                 <div className="absolute top-2 right-2">
                     <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200
-                        ${game.urls.zip 
-                            ? `${themes[currentTheme].button} text-white` 
-                            : `${themes[currentTheme].button} text-white`}`}
+                        ${
+                            game.urls.swf && game.urls.air
+                                ? 'bg-green-500 text-white' // Both
+                                : game.urls.air
+                                ? 'bg-blue-500 text-white' // Only AIR
+                                : 'bg-red-500 text-white' // Only Flash, if ever added
+                        }`}
                     >
-                        {game.urls.zip ? 'AIR + SWF' : 'SWF Only'}
+                        {
+                            game.urls.swf && game.urls.air
+                                ? 'AIR + SWF'
+                                : game.urls.air
+                                ? 'AIR Only'
+                                : 'SWF Only'
+                        }
                     </span>
                 </div>
 
@@ -158,9 +117,6 @@ const ServerCard = ({ game }) => {
                     <div className="flex justify-end gap-2">
                         <span className="text-white/90 text-sm px-2 py-1 rounded bg-black/30 backdrop-blur-sm">
                             v{game.version}
-                        </span>
-                        <span className="text-white/90 text-sm px-2 py-1 rounded bg-black/30 backdrop-blur-sm">
-                            {playerCount} playing
                         </span>
                     </div>
                 </div>
@@ -170,22 +126,24 @@ const ServerCard = ({ game }) => {
                 <h3 className={`text-lg font-bold truncate ${themes[currentTheme].text} group-hover:text-blue-500 transition-colors duration-200`}>
                     {game.title}
                 </h3>
-                <p className={`text-sm mt-1 mb-3 line-clamp-2 ${themes[currentTheme].textSecondary}`}>
+                <p className={`text-sm mt-1 mb-3 ${themes[currentTheme].textSecondary}`}>
                     {game.description}
                 </p>
-                {isDownloaded && !launchFailed ? (
+                {isDownloaded ? (
                     <div className="flex gap-2 mt-auto">
-                        <button 
-                            onClick={handlePlaySWF}
-                            className={`flex-1 ${themes[currentTheme].button} ${themes[currentTheme].buttonHover} 
-                                      text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 
-                                      transition-all duration-200 group/button`}
-                        >
-                            <FlashIcon />
-                            <span className="font-medium">Play SWF</span>
-                            <ChevronRight size={16} className="opacity-0 -ml-4 group-hover/button:opacity-100 group-hover/button:ml-0 transition-all duration-200" />
-                        </button>
-                        {game.urls.zip && (
+                        {game.urls.swf && (
+                            <button 
+                                onClick={handlePlaySWF}
+                                className={`flex-1 ${themes[currentTheme].button} ${themes[currentTheme].buttonHover} 
+                                          text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 
+                                          transition-all duration-200 group/button`}
+                            >
+                                <FlashIcon />
+                                <span className="font-medium">Play SWF</span>
+                                <ChevronRight size={16} className="opacity-0 -ml-4 group-hover/button:opacity-100 group-hover/button:ml-0 transition-all duration-200" />
+                            </button>
+                        )}
+                        {game.urls.air && (
                             <button 
                                 onClick={handlePlayAIR}
                                 disabled={isExtracting}
@@ -220,14 +178,14 @@ const ServerCard = ({ game }) => {
                             <>
                                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                                 <span className="font-medium">
-                                    {launchFailed ? 'Re-downloading...' : 'Downloading...'}
+                                    Downloading...
                                 </span>
                             </>
                         ) : (
                             <>
                                 <Download size={18} />
                                 <span className="font-medium">
-                                    {launchFailed ? 'Download Again' : 'Download'}
+                                    Download
                                 </span>
                                 <ChevronRight size={16} className="opacity-0 -ml-4 group-hover/button:opacity-100 group-hover/button:ml-0 transition-all duration-200" />
                             </>

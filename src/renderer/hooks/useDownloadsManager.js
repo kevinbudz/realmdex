@@ -1,9 +1,10 @@
 // src/renderer/hooks/useDownloadsManager.js
 import { useState, useEffect } from 'react';
-import { app } from '@electron/remote'; // ensure @electron/remote is used
+import { app } from '@electron/remote';
 import fs from 'fs';
 import path from 'path';
 
+// Custom hook to manage downloads
 export const useDownloadsManager = () => {
     const [downloadedGames, setDownloadedGames] = useState({});
     const [paths, setPaths] = useState(null);
@@ -12,7 +13,8 @@ export const useDownloadsManager = () => {
         try {
             const downloadsPath = path.join(app.getPath('userData'), 'downloads');
             const manifestPath = path.join(downloadsPath, 'manifest.json');
-            setPaths({ downloadsPath, manifestPath });
+            console.log('Download Path:', downloadsPath);
+            console.log('Manifest Path:', manifestPath);
 
             if (!fs.existsSync(downloadsPath)) {
                 fs.mkdirSync(downloadsPath, { recursive: true });
@@ -21,6 +23,7 @@ export const useDownloadsManager = () => {
                 fs.writeFileSync(manifestPath, JSON.stringify({}));
             }
 
+            setPaths({ downloadsPath, manifestPath });
             loadManifest(manifestPath);
         } catch (error) {
             console.error('Failed to initialize downloads manager:', error);
@@ -31,6 +34,7 @@ export const useDownloadsManager = () => {
         try {
             if (manifestPath && fs.existsSync(manifestPath)) {
                 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+                console.log('Loaded manifest:', manifest);
                 setDownloadedGames(manifest);
             }
         } catch (error) {
@@ -50,6 +54,7 @@ export const useDownloadsManager = () => {
             delete manifest[gameId];
         }
         fs.writeFileSync(paths.manifestPath, JSON.stringify(manifest, null, 2));
+        console.log('Updated manifest:', manifest);
         setDownloadedGames(manifest);
     };
 
@@ -62,7 +67,10 @@ export const useDownloadsManager = () => {
     };
 
     const downloadGame = async (game) => {
-        if (!paths) return false;
+        if (!paths) {
+            console.error('Paths not initialized!');
+            return false;
+        }
 
         const gameDir = path.join(paths.downloadsPath, game.id);
         if (!fs.existsSync(gameDir)) {
@@ -72,29 +80,61 @@ export const useDownloadsManager = () => {
         const files = [];
         try {
             if (game.urls.swf) {
-                const swfPath = path.join(gameDir, `${game.id}.swf`);
-                await downloadFile(game.urls.swf, swfPath);
-                files.push({ type: 'swf', path: swfPath });
+                console.log(`Preparing to download SWF for ${game.id}`);
+                await attemptDownload(game.urls.swf, game.id, files, 'swf');
             }
 
-            if (game.urls.zip) {
-                const zipPath = path.join(gameDir, `${game.id}.zip`);
-                await downloadFile(game.urls.zip, zipPath);
-                files.push({ type: 'zip', path: zipPath });
+            if (game.urls.air) {
+                console.log(`Preparing to download AIR (ZIP) for ${game.id}`);
+                await attemptDownload(game.urls.air, game.id, files, 'zip');
             }
 
-            updateManifest(game.id, files);
-            return true;
+            if (files.length) {
+                updateManifest(game.id, files);
+                console.log('Download complete for:', game.id);
+                return true;
+            }
+
+            console.log('No files downloaded for:', game.id);
+            return false;
         } catch (error) {
-            console.error('Download failed:', error);
+            console.error('Error during downloadGame for', game.id, ':', error);
             return false;
         }
     };
 
+    const attemptDownload = async (url, gameId, files, type) => {
+        console.log(`Attempting to download ${type.toUpperCase()} from URL: ${url}`);
+        const filePath = path.join(paths.downloadsPath, gameId, `${gameId}.${type}`);
+        try {
+            const fileDownloaded = await downloadFile(url, filePath);
+            if (fileDownloaded) {
+                files.push({ type: type, path: filePath });
+                console.log(`Downloaded and saved ${type.toUpperCase()} at:`, filePath);
+            } else {
+                console.log(`Failed to download ${type.toUpperCase()}`);
+            }
+        } catch (error) {
+            console.error(`Error downloading ${type.toUpperCase()} from ${url}`, error);
+        }
+    };
+
     const downloadFile = async (url, filePath) => {
-        const response = await fetch(url);
-        const buffer = await response.arrayBuffer();
-        fs.writeFileSync(filePath, Buffer.from(buffer));
+        try {
+            const response = await fetch(url);
+            if (response.ok) {
+                console.log(`Fetch successful from URL: ${url}`);
+                const buffer = await response.arrayBuffer();
+                fs.writeFileSync(filePath, Buffer.from(buffer));
+                return true;
+            } else {
+                console.error(`Failed to fetch file from ${url} - Status: ${response.status}`);
+                return false;
+            }
+        } catch (error) {
+            console.error(`Error downloading file at URL: ${url}`, error);
+            return false;
+        }
     };
 
     return {
@@ -103,6 +143,7 @@ export const useDownloadsManager = () => {
         getGameFiles,
         downloadedGames,
         isReady: !!paths,
-        updateManifest // Ensure this function is exposed for use
+        updateManifest,
+        paths
     };
 };
