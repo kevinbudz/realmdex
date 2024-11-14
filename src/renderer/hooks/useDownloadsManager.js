@@ -4,7 +4,6 @@ import { app } from '@electron/remote';
 import fs from 'fs';
 import path from 'path';
 
-// Custom hook to manage downloads
 export const useDownloadsManager = () => {
     const [downloadedGames, setDownloadedGames] = useState({});
     const [paths, setPaths] = useState(null);
@@ -64,6 +63,33 @@ export const useDownloadsManager = () => {
 
     const getGameFiles = (gameId) => {
         return downloadedGames[gameId]?.files || [];
+    };
+
+    const isVersionDownloaded = (version) => {
+        const playerPath = getPlayerPath(version);
+        return fs.existsSync(playerPath);
+    };
+
+    const downloadFlashPlayerVersion = async (url, version) => {
+        const playerPath = getPlayerPath(version);
+        try {
+            const response = await fetch(url);
+            if (response.ok) {
+                console.log(`Downloading Flash Player version ${version} from location: ${url}`);
+                const buffer = await response.arrayBuffer();
+                fs.writeFileSync(playerPath, Buffer.from(buffer));
+                console.log(`Flash Player version ${version} downloaded successfully.`);
+            } else {
+                console.error(`Failed to download Flash Player from ${url} - Status: ${response.status}`);
+            }
+        } catch (error) {
+            console.error(`Error downloading Flash Player from ${url}`, error);
+        }
+    };
+
+    const getPlayerPath = (version) => {
+        if (!paths) return '';
+        return path.join(paths.downloadsPath, `flashplayer_${version}.exe`);
     };
 
     const downloadGame = async (game) => {
@@ -137,10 +163,28 @@ export const useDownloadsManager = () => {
         }
     };
 
+    // Function to remove all game files including the directory
+    const uninstallGame = (gameId) => {
+        if (!paths) return;
+
+        const gameDir = path.join(paths.downloadsPath, gameId);
+
+        // Remove the entire game directory
+        if (fs.existsSync(gameDir)) {
+            fs.rmSync(gameDir, { recursive: true, force: true });
+            console.log(`Removed entire directory for ${gameId}`);
+        }
+
+        updateManifest(gameId, []);
+    };
+
     return {
         downloadGame,
         isGameDownloaded,
         getGameFiles,
+        isVersionDownloaded,
+        downloadFlashPlayerVersion,
+        uninstallGame, 
         downloadedGames,
         isReady: !!paths,
         updateManifest,

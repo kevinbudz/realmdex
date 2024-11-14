@@ -1,43 +1,14 @@
 // src/renderer/components/Settings.jsx
 import React, { useEffect, useState } from 'react';
 import { useTheme, themes } from '../context/ThemeContext';
-import { Check, Folder, Monitor, Download } from 'lucide-react';
-const path = require('path');
-const fs = require('fs');
+import { Check } from 'lucide-react';
+import { useDownloadsManager } from '../hooks/useDownloadsManager';
 
-// Assume 'flashplayer.exe' is stored under resources/flashplayer
-const defaultFlashPlayerPath = path.join(__dirname, 'resources', 'flashplayer_11.exe');
-
-// Default to a dedicated downloads directory in userData
-const defaultDownloadsPath = path.join(process.env.USERPROFILE || process.env.HOME, 'FlashGames');
-
-const ensureDirExists = (dir) => {
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-    }
-};
-
-// Component for displaying directory selection but not requiring input
-const DirectorySelector = ({ label, value, icon: Icon, placeholder, isReadOnly = true }) => {
-    const { currentTheme } = useTheme();
-    return (
-        <div className={`${themes[currentTheme].card} p-4 rounded-lg`}>
-            <label className="flex flex-col gap-2">
-                <span className={`flex items-center gap-2 ${themes[currentTheme].text} font-medium`}>
-                    <Icon size={20} />
-                    {label}
-                </span>
-                <input
-                    type="text"
-                    value={value || ''}
-                    placeholder={placeholder}
-                    readOnly={isReadOnly}
-                    className={`flex-1 px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 ${themes[currentTheme].text}`}
-                />
-            </label>
-        </div>
-    );
-};
+const availableFlashPlayers = [
+    { version: '11', description: 'Flash Player 11', url: 'https://kevinbudz.github.io/flashplayer_11.exe' },
+    { version: '18', description: 'Flash Player 18', url: 'https://example.com/flashplayer_18.exe' },
+    { version: '32', description: 'Flash Player 32', url: 'https://example.com/flashplayer_32.exe' },
+];
 
 const ThemeOption = ({ id, name, current, onClick }) => {
     return (
@@ -66,11 +37,27 @@ const ThemeOption = ({ id, name, current, onClick }) => {
 
 const Settings = () => {
     const { currentTheme, setCurrentTheme } = useTheme();
-    const [paths, setPaths] = useState({
-        flashPlayerPath: defaultFlashPlayerPath,
-        downloadsPath: defaultDownloadsPath
-    });
+    const [currentFlashPlayer, setCurrentFlashPlayer] = useState('11');
+    const { isVersionDownloaded, downloadFlashPlayerVersion } = useDownloadsManager();
     const [saved, setSaved] = useState(false);
+
+    useEffect(() => {
+        const savedFlashPlayer = localStorage.getItem('flashPlayerVersion');
+        if (savedFlashPlayer) {
+            setCurrentFlashPlayer(savedFlashPlayer);
+        }
+    }, []);
+
+    const handleFlashPlayerChange = async (newVersion) => {
+        if (!isVersionDownloaded(newVersion)) {
+            const selectedPlayer = availableFlashPlayers.find(p => p.version === newVersion);
+            await downloadFlashPlayerVersion(selectedPlayer.url, newVersion);
+        }
+        setCurrentFlashPlayer(newVersion);
+        localStorage.setItem('flashPlayerVersion', newVersion);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+    };
 
     const themeOptions = [
         { id: 'light', name: 'Light' },
@@ -82,8 +69,6 @@ const Settings = () => {
         { id: 'solarizedDark', name: 'Solarized Dark' },
         { id: 'monochrome', name: 'Monochrome' }
     ];
-
-    useEffect(() => {}, []);
 
     return (
         <div className={`flex-1 ${themes[currentTheme].bg} p-6 overflow-auto`}>
@@ -98,7 +83,25 @@ const Settings = () => {
                             <span>Settings saved</span>
                         </div>
                     )}
-                </div>            
+                </div>
+
+                <div className={`bg-opacity-50 rounded-lg p-6 mb-6 ${themes[currentTheme].card}`}>
+                    <h3 className={`text-lg font-semibold mb-4 ${themes[currentTheme].text}`}>
+                        Default Flash Player
+                    </h3>
+                    <div className="flex flex-col gap-4">
+                        {availableFlashPlayers.map(player => (
+                            <div
+                                key={player.version}
+                                onClick={() => handleFlashPlayerChange(player.version)}
+                                className={`cursor-pointer p-4 rounded-md transition-all duration-200
+                                    ${currentFlashPlayer === player.version ? 'bg-blue-500 text-white' : `${themes[currentTheme].card} ${themes[currentTheme].text}`}`}
+                            >
+                                {player.description}
+                            </div>
+                        ))}
+                    </div>
+                </div>
 
                 <div className={`bg-opacity-50 rounded-lg p-6 mb-6 ${themes[currentTheme].card}`}>
                     <h3 className={`text-lg font-semibold mb-4 ${themes[currentTheme].text}`}>

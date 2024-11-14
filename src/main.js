@@ -10,7 +10,7 @@ function createWindow() {
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
-            webSecurity: true,
+            webSecurity: false,
             enableRemoteModule: true
         },
         resizable: false
@@ -23,13 +23,7 @@ function createWindow() {
     callback({
         responseHeaders: {
             ...details.responseHeaders,
-            'Content-Security-Policy': [
-                "default-src 'self' 'unsafe-inline' http://localhost:3000; " +
-                "img-src 'self' http://localhost:3000 https://*.githubusercontent.com https://*.github.io data:; " +
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-                "font-src 'self' https://fonts.gstatic.com;" + 
-                "connect-src 'self' http://localhost:3000 https://*.githubusercontent.com https://*.github.io"
-            ]
+            'Content-Security-Policy': undefined
         }
     });
 });

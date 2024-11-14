@@ -1,5 +1,5 @@
 // src/renderer/components/ServerList.jsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme, themes } from '../context/ThemeContext';
 import { useGameData } from '../hooks/useGameData';
 import { useNotifications, NotificationType } from '../components/Notifications';
@@ -25,16 +25,37 @@ const ServerCard = ({ game }) => {
     const { isGameDownloaded, downloadGame, isReady } = useDownloadsManager();
     const { launchSWF, launchAIR, isExtracting } = useGameLauncher();
     const { addNotification } = useNotifications();
-    const [isDownloaded, setIsDownloaded] = React.useState(false);
-    const [isDownloading, setIsDownloading] = React.useState(false);
+    const [isDownloaded, setIsDownloaded] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [playerCount, setPlayerCount] = useState(null);
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (isReady) {
             setIsDownloaded(isGameDownloaded(game.id));
         }
     }, [isReady, game.id, isGameDownloaded]);
 
-    // Function to handle download
+    // Fetch the player count
+    const fetchPlayerCount = async () => {
+        try {
+            const response = await fetch(game.playerCountUrl);
+            if (response.ok) {
+                const count = await response.text();
+                setPlayerCount(count);
+            } else {
+                console.error('Failed to fetch player count', response.status);
+            }
+        } catch (error) {
+            console.error('Error fetching player count:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchPlayerCount(); // Initial fetch
+        const interval = setInterval(fetchPlayerCount, 120000); // Polling every 120 seconds
+        return () => clearInterval(interval); // Cleanup on component unmount
+    }, [game.playerCountUrl]);
+
     const handleDownload = async () => {
         setIsDownloading(true);
         try {
@@ -114,9 +135,12 @@ const ServerCard = ({ game }) => {
                 </div>
 
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent pt-8 pb-2 px-3">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-between items-center">
                         <span className="text-white/90 text-sm px-2 py-1 rounded bg-black/30 backdrop-blur-sm">
                             v{game.version}
+                        </span>
+                        <span className="text-white/90 text-sm px-2 py-1 rounded bg-black/30 backdrop-blur-sm">
+                            {playerCount !== null ? `${playerCount} Players` : 'Loading...'}
                         </span>
                     </div>
                 </div>
@@ -230,15 +254,19 @@ const LoadingState = () => {
 const ServerList = ({ setActiveTab }) => {
     const { currentTheme } = useTheme();
     const { games, isLoading } = useGameData();
+    const { isGameDownloaded, isReady } = useDownloadsManager();
 
-    if (isLoading) {
+    if (isLoading || !isReady) {
         return <LoadingState />;
     }
+
+    // Filter games that are already downloaded
+    const downloadedGames = games.filter(game => isGameDownloaded(game.id));
 
     return (
         <div className={`flex-1 ${themes[currentTheme].bg} p-4 overflow-auto`}>
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {games.map((game) => (
+                {downloadedGames.map((game) => (
                     <ServerCard key={game.id} game={game} />
                 ))}
                 <AddServerCard onOpenDownloads={() => setActiveTab('downloads')} />
