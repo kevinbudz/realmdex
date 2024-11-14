@@ -1,16 +1,17 @@
 // src/renderer/components/Downloads.jsx
+// src/renderer/components/Downloads.jsx
 import React from 'react';
-import { Download, ChevronRight, Trash2, Users } from 'lucide-react';
+import { Download, ChevronRight, Trash2, Users, User } from 'lucide-react';
 import { useTheme, themes } from '../context/ThemeContext';
 import { useGameData } from '../hooks/useGameData';
 import { useDownloadsManager } from '../hooks/useDownloadsManager';
 import { useNotifications, NotificationType } from '../components/Notifications';
-const fs = require('fs');
+import { shell } from 'electron';
 const path = require('path');
 
 const DownloadCard = ({ game }) => {
     const { currentTheme } = useTheme();
-    const { downloadGame, isGameDownloaded, getGameFiles, updateManifest, paths } = useDownloadsManager(); // Ensure paths is extracted here
+    const { downloadGame, isGameDownloaded, getGameFiles, updateManifest, paths } = useDownloadsManager();
     const { addNotification } = useNotifications();
     const [isDownloaded, setIsDownloaded] = React.useState(false);
     const [isDownloading, setIsDownloading] = React.useState(false);
@@ -73,7 +74,7 @@ const DownloadCard = ({ game }) => {
             console.error(`Error deleting directory ${gameDir}:`, error);
         }
 
-        updateManifest(game.id, []); 
+        updateManifest(game.id, []);
         setIsDownloaded(false);
         addNotification(
             NotificationType.SUCCESS,
@@ -158,6 +159,10 @@ const Downloads = () => {
     const { currentTheme } = useTheme();
     const { games, isLoading } = useGameData();
 
+    const handleServerRedirect = () => {
+        shell.openExternal('https://github.com/kevinbudz/realmdex'); // Opens URL in the external browser
+    };
+
     if (isLoading) {
         return (
             <div className={`flex-1 ${themes[currentTheme].bg} p-4 flex items-center justify-center`}>
@@ -172,16 +177,24 @@ const Downloads = () => {
     return (
         <div className={`flex-1 ${themes[currentTheme].bg} p-8 overflow-auto`}>
             <div className="max-w-7xl mx-auto">
-                <div className="flex items-center justify-between mb-8">
-                    <h2 className={`text-3xl font-bold ${themes[currentTheme].text}`}>
-                        Available Games
-                    </h2>
-                </div>
-                
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {games.map((game) => (
                         <DownloadCard key={game.id} game={game} />
                     ))}
+                    <div
+                        className={`relative group rounded-xl shadow-lg overflow-hidden transform transition-all duration-300 cursor-pointer hover:scale-[1.02] hover:shadow-xl ${themes[currentTheme].card}`}
+                        onClick={handleServerRedirect}
+                    >
+                        <div className="relative w-full pt-[56.25%] bg-gray-200 flex items-center justify-center">
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <User size={30} className={themes[currentTheme].text} />
+                                <div className="text-center">
+                                    <h3 className="font-medium text-lg">Wanna add your server?</h3>
+                                    <p className={`${themes[currentTheme].textSecondary}`}>Click here!</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

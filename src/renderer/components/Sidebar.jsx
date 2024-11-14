@@ -6,9 +6,15 @@ import { useTheme, themes } from '../context/ThemeContext';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
     const { currentTheme } = useTheme();
-    
+
     return (
-        <div className={`w-[30px] ${themes[currentTheme].sidebar} flex flex-col items-center py-4 space-y-4`}>
+        <div
+            className={`w-[30px] ${themes[currentTheme].sidebar} flex flex-col items-center py-4 space-y-4`}
+            style={{ WebkitAppRegion: 'no-drag' }} // Ensure Sidebar is not draggable
+        >
+            {/* Add the black rectangle at the top */}
+            <div style={{ width: '100%', height: '30px', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}></div>
+            
             <Tooltip.Provider>
                 <Tooltip.Root>
                     <Tooltip.Trigger asChild>

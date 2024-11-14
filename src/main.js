@@ -13,7 +13,8 @@ function createWindow() {
             webSecurity: false,
             enableRemoteModule: true
         },
-        resizable: false
+        resizable: false,
+        frame: false
     });
 
     require('@electron/remote/main').enable(win.webContents);
