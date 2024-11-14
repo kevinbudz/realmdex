@@ -83,44 +83,7 @@ const Settings = () => {
         { id: 'monochrome', name: 'Monochrome' }
     ];
 
-    useEffect(() => {
-        loadPaths();
-    }, []);
-
-    const loadPaths = () => {
-        try {
-            // Ensure downloads directory exists
-            ensureDirExists(paths.downloadsPath);
-
-            const userDataPath = window.electron.getAppPath();
-            const settingsPath = path.join(userDataPath, 'settings.json');
-
-            if (fs.existsSync(settingsPath)) {
-                const loadedSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-                setPaths({
-                    flashPlayerPath: loadedSettings.flashPlayerPath || defaultFlashPlayerPath,
-                    downloadsPath: loadedSettings.downloadsPath || defaultDownloadsPath
-                });
-            } else {
-                savePaths(paths);
-            }
-        } catch (error) {
-            console.error('Failed to load settings:', error);
-        }
-    };
-
-    const savePaths = (newPaths) => {
-        try {
-            const userDataPath = window.electron.getAppPath();
-            const settingsPath = path.join(userDataPath, 'settings.json');
-            fs.writeFileSync(settingsPath, JSON.stringify(newPaths, null, 2));
-
-            setSaved(true);
-            setTimeout(() => setSaved(false), 2000);
-        } catch (error) {
-            console.error('Failed to save settings:', error);
-        }
-    };
+    useEffect(() => {}, []);
 
     return (
         <div className={`flex-1 ${themes[currentTheme].bg} p-6 overflow-auto`}>
@@ -135,28 +98,7 @@ const Settings = () => {
                             <span>Settings saved</span>
                         </div>
                     )}
-                </div>
-
-                <div className={`bg-opacity-50 rounded-lg p-6 mb-6 ${themes[currentTheme].card}`}>
-                    <h3 className={`text-lg font-semibold mb-4 ${themes[currentTheme].text}`}>
-                        Directories
-                    </h3>
-                    <div className="space-y-4">
-                        <DirectorySelector
-                            label="Flash Player Standalone Directory"
-                            value={paths.flashPlayerPath}
-                            icon={Monitor}
-                            placeholder="Will use default Flash Player"
-                        />
-
-                        <DirectorySelector
-                            label="Downloads Directory"
-                            value={paths.downloadsPath}
-                            icon={Download}
-                            placeholder="Files will be saved in default directory"
-                        />
-                    </div>
-                </div>                
+                </div>            
 
                 <div className={`bg-opacity-50 rounded-lg p-6 mb-6 ${themes[currentTheme].card}`}>
                     <h3 className={`text-lg font-semibold mb-4 ${themes[currentTheme].text}`}>

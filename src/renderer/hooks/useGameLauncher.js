@@ -95,14 +95,16 @@ export const useGameLauncher = () => {
                     NotificationType.ERROR,
                     `Failed to launch application: ${err.message}`
                 );
-                return;
+            } else {
+                console.log(`Launched ${game.title} successfully.`);
+                addNotification(
+                    NotificationType.SUCCESS,
+                    `Launched ${game.title} successfully.`
+                );
             }
-            console.log(`Launched ${game.title} successfully.`);
-            addNotification(
-                NotificationType.SUCCESS,
-                `Launched ${game.title}`
-            );
         });
+
+        return true; // Consider marking as true immediately as it starts the process successfully
     };
 
     return {

@@ -12,7 +12,10 @@ export const useGameData = () => {
     useEffect(() => {
         const fetchGames = async () => {
             try {
-                const response = await fetch(REMOTE_JSON_URL);
+                // Add a cache-busting query string using the current timestamp
+                const response = await fetch(`${REMOTE_JSON_URL}?t=${new Date().getTime()}`, {
+                    cache: "no-store",
+                });
                 if (!response.ok) throw new Error('Failed to fetch games data');
                 
                 const data = await response.json();
@@ -24,7 +27,6 @@ export const useGameData = () => {
                 setIsLoading(false);
             }
         };
-
         fetchGames();
     }, []);
 
