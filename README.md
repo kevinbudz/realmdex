@@ -1,7 +1,7 @@
 # realmdex
 > An electron based auto-updater for all RotMG private servers!
 ## Premise.
-Give private servers an even bigger ease of access. Having all the available servers in one spot, with buttons to join their discord, get the latest client, see how many players are online. If everything can be conveniently laid out for the user, then they are more likely to play private servers on a whim decision. If they gotta look for UT Realms (28).zip, and debug the AIR executable when it doesn't for work some reason.. You get what I'm saying?
+Giving private servers as much ease of access as possible. The Realmdex app allows users to see each game's live player count, discord, and download links for flash/AIR. If everything can be conveniently laid out for the user, then they are more likely to play private servers on a whim decision, resulting in more players on overall. If they gotta look for UT Realms (28).zip, and debug the AIR executable when it doesn't for work some reason, it's more likely for that process to discourage you from getting on. You get what I'm saying?
 ## Features.
 - Can query live player count.
 - Has support for both AIR/Flash clients.
