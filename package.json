@@ -8,7 +8,29 @@
     "webpack-dev": "webpack serve --mode development",
     "electron-dev": "electron .",
     "dev": "concurrently \"npm run webpack-dev\" \"wait-on http://localhost:3000 && npm run electron-dev\"",
-    "build": "webpack --mode production"
+    "build": "webpack --mode production",
+    "electron:build": "electron-builder -c.extraMetadata.main=dist/main.js"
+  },
+  "build": {
+    "appId": "com.realmdex.app",
+    "productName": "RealmDex",
+    "directories": {
+      "output": "release/"
+    },
+    "files": [
+      "dist/**/*",
+      "src/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": ["dmg", "zip"]
+    },
+    "win": {
+      "target": ["nsis", "portable"]
+    },
+    "linux": {
+      "target": ["AppImage", "deb"]
+    }
   },
   "keywords": [],
   "author": "",
@@ -33,6 +55,8 @@
     "concurrently": "^8.0.1",
     "css-loader": "^6.8.1",
     "electron": "^24.3.0",
+    "electron-builder": "^24.6.4",
+    "electron-packager": "^17.1.2",
     "html-webpack-plugin": "^5.5.1",
     "postcss": "^8.4.23",
     "postcss-loader": "^7.3.0",
