@@ -12,7 +12,6 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
             className={`w-[30px] ${themes[currentTheme].sidebar} flex flex-col items-center py-4 space-y-4`}
             style={{ WebkitAppRegion: 'no-drag' }} // Ensure Sidebar is not draggable
         >
-            {/* Add the black rectangle at the top */}
             <div style={{ width: '100%', height: '30px', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}></div>
             
             <Tooltip.Provider>
@@ -27,7 +26,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                             <Gamepad size={20} />
                         </div>
                     </Tooltip.Trigger>
-                    <Tooltip.Content side="right">
+                    <Tooltip.Content side="right" className="tooltip-content">
                         <div className={`${themes[currentTheme].card} text-white px-2 py-1 rounded shadow-lg`}>
                             Servers
                         </div>
@@ -45,7 +44,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                             <Download size={20} />
                         </div>
                     </Tooltip.Trigger>
-                    <Tooltip.Content side="right">
+                    <Tooltip.Content side="right" className="tooltip-content">
                         <div className={`${themes[currentTheme].card} text-white px-2 py-1 rounded shadow-lg`}>
                             Download
                         </div>
@@ -63,7 +62,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                             <Settings size={20} />
                         </div>
                     </Tooltip.Trigger>
-                    <Tooltip.Content side="right">
+                    <Tooltip.Content side="right" className="tooltip-content">
                         <div className={`${themes[currentTheme].card} text-white px-2 py-1 rounded shadow-lg`}>
                             Options
                         </div>

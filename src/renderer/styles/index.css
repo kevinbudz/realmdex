@@ -55,4 +55,17 @@
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
         background: rgba(0, 0, 0, 0.7);
     }
+
+    .tooltip-content {
+        z-index: 1000; /* Ensure this is higher than other elements like content */
+        position: absolute; /* Necessary for z-index to take effect */
+    }
+
+    .sidebar {
+        z-index: 10; /* Lower than tooltip to ensure tooltips are on top */
+    }
+
+    .content-wrapper {
+        z-index: 1; /* Main content should be below tooltips */
+    }
 }
