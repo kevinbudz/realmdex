@@ -6,8 +6,9 @@ import { useNotifications, NotificationType } from '../components/Notifications'
 import { useDownloadsManager } from '../hooks/useDownloadsManager';
 import { Download, ChevronRight, Plus, User, RefreshCw } from 'lucide-react';
 import { useGameLauncher } from '../hooks/useGameLauncher';
+import NotificationDialog from './NotificationDialog';
 import fs from 'fs';
-import fetch from 'node-fetch'; // Ensure node-fetch is available
+import fetch from 'node-fetch';
 
 const FlashIcon = () => (
     <svg width="16" height="16" viewBox="0 0 512 512" fill="currentColor">
@@ -38,6 +39,7 @@ const ServerCard = ({ game }) => {
     const [isDownloaded, setIsDownloaded] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
     const [playerCount, setPlayerCount] = useState(null);
+    const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
 
     useEffect(() => {
         if (isReady) {
@@ -45,7 +47,6 @@ const ServerCard = ({ game }) => {
         }
     }, [isReady, game.id, isGameDownloaded]);
 
-    // Fetch the player count
     const fetchPlayerCount = async () => {
         try {
             const response = await fetch(game.playerCountUrl);
@@ -60,17 +61,17 @@ const ServerCard = ({ game }) => {
         }
     };
 
+    useEffect(() => {
+        fetchPlayerCount();
+        const interval = setInterval(fetchPlayerCount, 120000);
+        return () => clearInterval(interval);
+    }, [game.playerCountUrl]);
+
     const handleDiscordClick = () => {
         if (game.discordLink) {
             require('electron').shell.openExternal(game.discordLink);
         }
     };
-
-    useEffect(() => {
-        fetchPlayerCount(); // Initial fetch
-        const interval = setInterval(fetchPlayerCount, 120000); // Polling every 120 seconds
-        return () => clearInterval(interval); // Cleanup on component unmount
-    }, [game.playerCountUrl]);
 
     const handleDownload = async () => {
         setIsDownloading(true);
@@ -129,11 +130,9 @@ const ServerCard = ({ game }) => {
                 const remoteSize = parseInt(response.headers.get('content-length'), 10);
                 return localSize !== remoteSize;
             }));
-            
+
             if (mismatches.some(mismatch => mismatch)) {
-                if (window.confirm(`There is an update available for ${game.title}. Would you like to update?`)) {
-                    handleDownload();
-                }
+                setShowUpdatePrompt(true);
             } else {
                 addNotification(
                     NotificationType.INFO,
@@ -148,180 +147,158 @@ const ServerCard = ({ game }) => {
         }
     };
 
+    const handleConfirmUpdate = () => {
+        handleDownload();
+        setShowUpdatePrompt(false);
+    };
+
+    const handleCancelUpdate = () => {
+        setShowUpdatePrompt(false);
+    };
+
     return (
-        <div className={`${themes[currentTheme].card} rounded-xl shadow overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] group`}>
-            <div className="relative w-full pt-[56.25%] bg-gray-200">
-                <img 
-                    src={game.banner}
-                    alt={game.title}
-                    className="absolute top-0 left-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    crossOrigin="anonymous"
+        <>
+            {showUpdatePrompt && (
+                <NotificationDialog
+                    message={`There is an update available for ${game.title}. Do you want to update?`}
+                    onConfirm={handleConfirmUpdate}
+                    onCancel={handleCancelUpdate}
                 />
-                
-                <div className="absolute top-2 left-2">
-                    {game.discordLink && (
-                        <button 
-                            className="inline-block p-1 transition-colors duration-200" 
-                            onClick={handleDiscordClick}
+            )}
+            <div className={`${themes[currentTheme].card} rounded-xl shadow overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] group`}>
+                <div className="relative w-full pt-[56.25%] bg-gray-200">
+                    <img
+                        src={game.banner}
+                        alt={game.title}
+                        className="absolute top-0 left-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        crossOrigin="anonymous"
+                    />
+
+                    <div className="absolute top-2 left-2">
+                        {game.discordLink && (
+                            <button
+                                className="inline-block p-1 transition-colors duration-200"
+                                onClick={handleDiscordClick}
+                            >
+                                <DiscordIcon />
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="absolute top-2 right-2 flex space-x-2">
+                        <button
+                            className="inline-block p-1 transition-colors duration-200 text-white bg-transparent shadow-md hover:shadow-lg"
+                            onClick={handleRefresh}
+                            title="Check for Updates"
                         >
-                            <DiscordIcon />
+                            <RefreshCw size={18} />
+                        </button>
+                        <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200
+                            ${
+                                game.urls.swf && game.urls.air
+                                    ? 'bg-green-500 text-white'
+                                    : game.urls.air
+                                    ? 'bg-blue-500 text-white'
+                                    : 'bg-red-500 text-white'
+                            }`}
+                        >
+                            {
+                                game.urls.swf && game.urls.air
+                                    ? 'AIR + SWF'
+                                    : game.urls.air
+                                    ? 'AIR Only'
+                                    : 'SWF Only'
+                            }
+                        </span>
+                    </div>
+
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent pt-8 pb-2 px-3">
+                        <div className="flex justify-between items-center">
+                            <span className="text-white/90 text-sm px-2 py-1 rounded bg-black/30 backdrop-blur-sm">
+                                v{game.version}
+                            </span>
+                            <span className="text-white/90 text-sm px-2 py-1 rounded bg-black/30 backdrop-blur-sm">
+                                {playerCount !== null ? `${playerCount} Players` : 'Loading...'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-4">
+                    <h3 className={`text-lg font-bold truncate ${themes[currentTheme].text} group-hover:text-blue-500 transition-colors duration-200`}>
+                        {game.title}
+                    </h3>
+                    <p className={`text-sm mt-1 mb-3 ${themes[currentTheme].textSecondary}`}>
+                        {game.description}
+                    </p>
+                    {isDownloaded ? (
+                        <div className="flex gap-2 mt-auto">
+                            {game.urls.swf && (
+                                <button
+                                    onClick={handlePlaySWF}
+                                    className={`flex-1 ${themes[currentTheme].button} ${themes[currentTheme].buttonHover}
+                                              text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2
+                                              transition-all duration-200 group/button`}
+                                >
+                                    <FlashIcon />
+                                    <span className="font-medium">Play SWF</span>
+                                    <ChevronRight size={16} className="opacity-0 -ml-4 group-hover/button:opacity-100 group-hover/button:ml-0 transition-all duration-200" />
+                                </button>
+                            )}
+                            {game.urls.air && (
+                                <button
+                                    onClick={handlePlayAIR}
+                                    disabled={isExtracting}
+                                    className={`flex-1 ${isExtracting ? 'bg-gray-500' : `${themes[currentTheme].button} ${themes[currentTheme].buttonHover}`}
+                                              text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2
+                                              transition-all duration-200 group/button`}
+                                >
+                                    {isExtracting ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                            <span className="font-medium">Extracting...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <AirIcon />
+                                            <span className="font-medium">Play AIR</span>
+                                            <ChevronRight size={16} className="opacity-0 -ml-4 group-hover/button:opacity-100 group-hover/button:ml-0 transition-all duration-200" />
+                                        </>
+                                    )}
+                                </button>
+                            )}
+                        </div>
+                    ) : (
+                        <button
+                            onClick={handleDownload}
+                            disabled={isDownloading}
+                            className={`w-full ${isDownloading ? 'bg-gray-500' : `${themes[currentTheme].button} ${themes[currentTheme].buttonHover}`}
+                                      text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2
+                                      transition-all duration-200 group/button`}
+                        >
+                            {isDownloading ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                    <span className="font-medium">
+                                        Downloading...
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    <Download size={18} />
+                                    <span className="font-medium">
+                                        Download
+                                    </span>
+                                    <ChevronRight size={16} className="opacity-0 -ml-4 group-hover/button:opacity-100 group-hover/button:ml-0 transition-all duration-200" />
+                                </>
+                            )}
                         </button>
                     )}
                 </div>
-                
-                <div className="absolute top-2 right-2 flex space-x-2">
-                    <button 
-                        className="inline-block p-1 transition-colors duration-200 text-white bg-transparent shadow-md hover:shadow-lg"
-                        onClick={handleRefresh}
-                        title="Check for Updates"
-                    >
-                        <RefreshCw size={18} />
-                    </button>
-                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200
-                        ${
-                            game.urls.swf && game.urls.air
-                                ? 'bg-green-500 text-white' // Both
-                                : game.urls.air
-                                ? 'bg-blue-500 text-white' // Only AIR
-                                : 'bg-red-500 text-white' // Only Flash, if ever added
-                        }`}
-                    >
-                        {
-                            game.urls.swf && game.urls.air
-                                ? 'AIR + SWF'
-                                : game.urls.air
-                                ? 'AIR Only'
-                                : 'SWF Only'
-                        }
-                    </span>
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent pt-8 pb-2 px-3">
-                    <div className="flex justify-between items-center">
-                        <span className="text-white/90 text-sm px-2 py-1 rounded bg-black/30 backdrop-blur-sm">
-                            v{game.version}
-                        </span>
-                        <span className="text-white/90 text-sm px-2 py-1 rounded bg-black/30 backdrop-blur-sm">
-                            {playerCount !== null ? `${playerCount} Players` : 'Loading...'}
-                        </span>
-                    </div>
-                </div>
             </div>
-
-            <div className="p-4">
-                <h3 className={`text-lg font-bold truncate ${themes[currentTheme].text} group-hover:text-blue-500 transition-colors duration-200`}>
-                    {game.title}
-                </h3>
-                <p className={`text-sm mt-1 mb-3 ${themes[currentTheme].textSecondary}`}>
-                    {game.description}
-                </p>
-                {isDownloaded ? (
-                    <div className="flex gap-2 mt-auto">
-                        {game.urls.swf && (
-                            <button 
-                                onClick={handlePlaySWF}
-                                className={`flex-1 ${themes[currentTheme].button} ${themes[currentTheme].buttonHover} 
-                                          text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 
-                                          transition-all duration-200 group/button`}
-                            >
-                                <FlashIcon />
-                                <span className="font-medium">Play SWF</span>
-                                <ChevronRight size={16} className="opacity-0 -ml-4 group-hover/button:opacity-100 group-hover/button:ml-0 transition-all duration-200" />
-                            </button>
-                        )}
-                        {game.urls.air && (
-                            <button 
-                                onClick={handlePlayAIR}
-                                disabled={isExtracting}
-                                className={`flex-1 ${isExtracting ? 'bg-gray-500' : `${themes[currentTheme].button} ${themes[currentTheme].buttonHover}`}
-                                          text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 
-                                          transition-all duration-200 group/button`}
-                            >
-                                {isExtracting ? (
-                                    <>
-                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                                        <span className="font-medium">Extracting...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <AirIcon />
-                                        <span className="font-medium">Play AIR</span>
-                                        <ChevronRight size={16} className="opacity-0 -ml-4 group-hover/button:opacity-100 group-hover/button:ml-0 transition-all duration-200" />
-                                    </>
-                                )}
-                            </button>
-                        )}
-                    </div>
-                ) : (
-                    <button 
-                        onClick={handleDownload}
-                        disabled={isDownloading}
-                        className={`w-full ${isDownloading ? 'bg-gray-500' : `${themes[currentTheme].button} ${themes[currentTheme].buttonHover}`}
-                                  text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 
-                                  transition-all duration-200 group/button`}
-                    >
-                        {isDownloading ? (
-                            <>
-                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                                <span className="font-medium">
-                                    Downloading...
-                                </span>
-                            </>
-                        ) : (
-                            <>
-                                <Download size={18} />
-                                <span className="font-medium">
-                                    Download
-                                </span>
-                                <ChevronRight size={16} className="opacity-0 -ml-4 group-hover/button:opacity-100 group-hover/button:ml-0 transition-all duration-200" />
-                            </>
-                        )}
-                    </button>
-                )}
-            </div>
-        </div>
+        </>
     );
 };
-
-const CompactServerCard = ({ game, launchSWF, launchAIR }) => {
-    const { currentTheme } = useTheme();
-    const [playerCount, setPlayerCount] = useState(null);
-
-    const fetchPlayerCount = async () => {
-        try {
-            const response = await fetch(game.playerCountUrl);
-            if (response.ok) {
-                const count = await response.text();
-                setPlayerCount(count);
-            } else {
-                console.error('Failed to fetch player count', response.status);
-            }
-        } catch (error) {
-            console.error('Error fetching player count:', error);
-        }
-    };
-
-    useEffect(() => {
-        fetchPlayerCount();
-        const interval = setInterval(fetchPlayerCount, 120000);
-        return () => clearInterval(interval);
-    }, [game.playerCountUrl]);
-
-    return (
-        <div className={`flex justify-between items-center p-2 ${themes[currentTheme].card} rounded shadow mb-2`}>
-            <div className="flex-1 cursor-pointer" onClick={game.urls.swf ? () => launchSWF(game) : () => launchAIR(game)}>
-                <span className={`font-medium ${themes[currentTheme].text}`}>{game.title}</span>
-            </div>
-            <div className="flex items-center gap-2">
-                <User size={16} className={`${themes[currentTheme].textSecondary}`} />
-                <span className={`${themes[currentTheme].textSecondary}`}>
-                    {playerCount !== null ? playerCount : '-'}
-                </span>
-            </div>
-        </div>
-    );
-};
-
 
 const AddServerCard = ({ onOpenDownloads }) => {
     const { currentTheme } = useTheme();
@@ -336,18 +313,6 @@ const AddServerCard = ({ onOpenDownloads }) => {
                     <Plus size={48} className={`${themes[currentTheme].button.replace('bg-', 'text-')}`} />
                     <span className={`${themes[currentTheme].text}`}>Browse Games</span>
                 </div>
-            </div>
-        </div>
-    );
-};
-
-const LoadingState = () => {
-    const { currentTheme } = useTheme();
-    return (
-        <div className={`flex-1 ${themes[currentTheme].bg} p-4 flex items-center justify-center`}>
-            <div className="flex flex-col items-center gap-4">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                <p className={`${themes[currentTheme].text}`}>Loading games...</p>
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
 // src/renderer/components/Downloads.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, ChevronRight, Trash2, Users, User } from 'lucide-react';
 import { useTheme, themes } from '../context/ThemeContext';
 import { useGameData } from '../hooks/useGameData';
@@ -10,14 +10,33 @@ const path = require('path');
 
 const DownloadCard = ({ game }) => {
     const { currentTheme } = useTheme();
-    const { downloadGame, isGameDownloaded, getGameFiles, updateManifest, paths, uninstallGame } = useDownloadsManager();
+    const { downloadGame, isGameDownloaded, uninstallGame } = useDownloadsManager();
     const { addNotification } = useNotifications();
-    const [isDownloaded, setIsDownloaded] = React.useState(false);
-    const [isDownloading, setIsDownloading] = React.useState(false);
+    const [isDownloaded, setIsDownloaded] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [playerCount, setPlayerCount] = useState('?');
 
-    React.useEffect(() => {
+    useEffect(() => {
         setIsDownloaded(isGameDownloaded(game.id));
     }, [game.id, isGameDownloaded]);
+
+    useEffect(() => {
+        const fetchPlayerCount = async () => {
+            try {
+                const response = await fetch(game.playerCountUrl);
+                if (response.ok) {
+                    const count = await response.text();
+                    setPlayerCount(count);
+                } else {
+                    setPlayerCount('?');
+                }
+            } catch (error) {
+                setPlayerCount('?');
+            }
+        };
+
+        fetchPlayerCount();
+    }, [game.playerCountUrl]);
 
     const handleDownload = async () => {
         setIsDownloading(true);
@@ -46,14 +65,7 @@ const DownloadCard = ({ game }) => {
     };
 
     const handleUninstall = () => {
-        if (!paths) {
-            console.error('Paths not initialized!');
-            return;
-        }
-        
-        // Use uninstallGame method from the hook to handle uninstallation directly
         uninstallGame(game.id);
-
         setIsDownloaded(false);
         addNotification(
             NotificationType.SUCCESS,
@@ -73,7 +85,8 @@ const DownloadCard = ({ game }) => {
 
                 <div className="absolute top-4 right-4 flex items-center gap-3">
                     <span className="flex items-center gap-1 text-white text-sm text-shadow-sm">
-                        <Users size={14} className="drop-shadow" />
+                        <User size={16} className="drop-shadow" />
+                        {playerCount}
                     </span>
                 </div>
 
