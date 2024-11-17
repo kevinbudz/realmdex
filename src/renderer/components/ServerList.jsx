@@ -4,8 +4,10 @@ import { useTheme, themes } from '../context/ThemeContext';
 import { useGameData } from '../hooks/useGameData';
 import { useNotifications, NotificationType } from '../components/Notifications';
 import { useDownloadsManager } from '../hooks/useDownloadsManager';
-import { Download, ChevronRight, Plus, MessageSquare } from 'lucide-react';
+import { Download, ChevronRight, Plus, User, RefreshCw } from 'lucide-react';
 import { useGameLauncher } from '../hooks/useGameLauncher';
+import fs from 'fs';
+import fetch from 'node-fetch'; // Ensure node-fetch is available
 
 const FlashIcon = () => (
     <svg width="16" height="16" viewBox="0 0 512 512" fill="currentColor">
@@ -30,7 +32,7 @@ const DiscordIcon = () => (
 
 const ServerCard = ({ game }) => {
     const { currentTheme } = useTheme();
-    const { isGameDownloaded, downloadGame, isReady } = useDownloadsManager();
+    const { isGameDownloaded, downloadGame, isReady, getGameFiles } = useDownloadsManager();
     const { launchSWF, launchAIR, isExtracting } = useGameLauncher();
     const { addNotification } = useNotifications();
     const [isDownloaded, setIsDownloaded] = useState(false);
@@ -118,6 +120,34 @@ const ServerCard = ({ game }) => {
         }
     };
 
+    const handleRefresh = async () => {
+        try {
+            const localFiles = getGameFiles(game.id);
+            const mismatches = await Promise.all(localFiles.map(async (file) => {
+                const localSize = fs.statSync(file.path).size;
+                const response = await fetch(file.type === 'swf' ? game.urls.swf : game.urls.air, { method: 'HEAD' });
+                const remoteSize = parseInt(response.headers.get('content-length'), 10);
+                return localSize !== remoteSize;
+            }));
+            
+            if (mismatches.some(mismatch => mismatch)) {
+                if (window.confirm(`There is an update available for ${game.title}. Would you like to update?`)) {
+                    handleDownload();
+                }
+            } else {
+                addNotification(
+                    NotificationType.INFO,
+                    `${game.title} is up to date.`
+                );
+            }
+        } catch (error) {
+            addNotification(
+                NotificationType.ERROR,
+                `Error checking for updates: ${error.message}`
+            );
+        }
+    };
+
     return (
         <div className={`${themes[currentTheme].card} rounded-xl shadow overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] group`}>
             <div className="relative w-full pt-[56.25%] bg-gray-200">
@@ -138,8 +168,15 @@ const ServerCard = ({ game }) => {
                         </button>
                     )}
                 </div>
-
-                <div className="absolute top-2 right-2">
+                
+                <div className="absolute top-2 right-2 flex space-x-2">
+                    <button 
+                        className="inline-block p-1 transition-colors duration-200 text-white bg-transparent shadow-md hover:shadow-lg"
+                        onClick={handleRefresh}
+                        title="Check for Updates"
+                    >
+                        <RefreshCw size={18} />
+                    </button>
                     <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200
                         ${
                             game.urls.swf && game.urls.air
@@ -246,6 +283,46 @@ const ServerCard = ({ game }) => {
     );
 };
 
+const CompactServerCard = ({ game, launchSWF, launchAIR }) => {
+    const { currentTheme } = useTheme();
+    const [playerCount, setPlayerCount] = useState(null);
+
+    const fetchPlayerCount = async () => {
+        try {
+            const response = await fetch(game.playerCountUrl);
+            if (response.ok) {
+                const count = await response.text();
+                setPlayerCount(count);
+            } else {
+                console.error('Failed to fetch player count', response.status);
+            }
+        } catch (error) {
+            console.error('Error fetching player count:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchPlayerCount();
+        const interval = setInterval(fetchPlayerCount, 120000);
+        return () => clearInterval(interval);
+    }, [game.playerCountUrl]);
+
+    return (
+        <div className={`flex justify-between items-center p-2 ${themes[currentTheme].card} rounded shadow mb-2`}>
+            <div className="flex-1 cursor-pointer" onClick={game.urls.swf ? () => launchSWF(game) : () => launchAIR(game)}>
+                <span className={`font-medium ${themes[currentTheme].text}`}>{game.title}</span>
+            </div>
+            <div className="flex items-center gap-2">
+                <User size={16} className={`${themes[currentTheme].textSecondary}`} />
+                <span className={`${themes[currentTheme].textSecondary}`}>
+                    {playerCount !== null ? playerCount : '-'}
+                </span>
+            </div>
+        </div>
+    );
+};
+
+
 const AddServerCard = ({ onOpenDownloads }) => {
     const { currentTheme } = useTheme();
     return (
@@ -276,14 +353,21 @@ const LoadingState = () => {
     );
 };
 
-
-const ServerList = ({ setActiveTab }) => {
+const ServerList = ({ setActiveTab, isCompactMode }) => {
     const { currentTheme } = useTheme();
     const { games, isLoading } = useGameData();
-    const { isGameDownloaded, isReady } = useDownloadsManager();
+    const { isGameDownloaded } = useDownloadsManager();
+    const { launchSWF, launchAIR } = useGameLauncher();
 
     if (isLoading) {
-        return <LoadingState />;
+        return (
+            <div className={`flex-1 ${themes[currentTheme].bg} p-4 flex items-center justify-center`}>
+                <div className="flex flex-col items-center gap-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                    <p className={`${themes[currentTheme].text}`}>Loading games...</p>
+                </div>
+            </div>
+        );
     }
 
     const downloadedGames = games.filter(game => isGameDownloaded(game.id));
