@@ -1,3 +1,4 @@
+// src/renderer/hooks/useGameLauncher.js
 import { useNotifications, NotificationType } from '../components/Notifications';
 import fs from 'fs';
 import path from 'path';
