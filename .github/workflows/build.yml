@@ -5,8 +5,8 @@ on: push
 jobs:
   release:
     runs-on: ${{ matrix.os }}
-
     strategy:
+      fail-fast: false # dont keep this, only for debugging if one fails 
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
 
