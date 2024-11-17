@@ -14,6 +14,6 @@ Give private servers an even bigger ease of access. Having all the available ser
 4. run `npm run dev`.
 ## Contributing.
 Contribute to the auto-updater:
-> If you want to **help with this applet**, then you can make pull requests to this repository.
+> If you want to **help with this applet**, then you can make pull requests to this repository.<br/>
 Adding your server:
 > If you want to **add your server to the app**, then you can navigate [here.](https://github.com/kevinbudz/kevinbudz.github.io)
